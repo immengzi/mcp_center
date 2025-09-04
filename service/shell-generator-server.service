@@ -1,0 +1,15 @@
+[Unit]
+Description=Shell Generator Server for MCP Center
+After=network.target
+
+[Service]
+User=root
+WorkingDirectory=/usr/lib/euler-copilot-framework/mcp_center
+ExecStart=/usr/bin/python3 servers/shell_generator/src/server.py
+Restart=always
+RestartSec=5
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target
+    
