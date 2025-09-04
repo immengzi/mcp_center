@@ -9,6 +9,7 @@ from typing import Any
 from enum import Enum
 import toml
 import os
+from apps.schemas.config import ConfigModel as FrameworkConfigModel
 
 
 class LanguageEnum(str, Enum):
@@ -42,16 +43,22 @@ class ConfigModel(BaseModel):
     """公共配置模型"""
     public_config: PublicConfigModel = Field(default=PublicConfigModel(), description="公共配置")
     private_config: Any = Field(default=None, description="私有配置")
-
-
 class BaseConfig():
     """配置文件读取和使用Class"""
 
     def __init__(self) -> None:
         """读取配置文件；当PROD环境变量设置时，配置文件将在读取后删除"""
-        config_file = os.getenv("CONFIG")
-        if config_file is None:
-            config_file = os.path.join("config", "public", "public_config.toml")
+        framework_config_file = os.getenv("CONFIG")
+        if framework_config_file is None:
+            framework_config_file = os.path.join("apps", "config", "config.toml")
+        framework_config = FrameworkConfigModel.model_validate(toml.load(framework_config_file))
+        self._config = ConfigModel()
+        self._config.public_config.llm_remote = framework_config.llm.endpoint
+        self._config.public_config.llm_model = framework_config.llm.model
+        self._config.public_config.llm_api_key = framework_config.llm.key
+        self._config.public_config.max_tokens = framework_config.llm.max_tokens
+        self._config.public_config.temperature = framework_config.llm.temperature
+        config_file = os.path.join("mcp_center", "config", "public", "public_config.toml")
         self._config = ConfigModel()
         self._config.public_config = PublicConfigModel.model_validate(toml.load(config_file))
 

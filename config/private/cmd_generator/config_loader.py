@@ -25,7 +25,7 @@ class CMDGeneratorConfig(BaseConfig):
 
     def load_private_config(self) -> None:
         """加载私有配置文件"""
-        config_file = os.getenv("CONFIG")
+        config_file = os.getenv("CMD_GENERATOR_CONFIG")
         if config_file is None:
-            config_file = os.path.join("config", "private", "cmd_generator", "config.toml")
+            config_file = os.path.join("mcp_center", "config", "private", "cmd_generator", "config.toml")
         self._config.private_config = CMDGeneratorConfigModel.model_validate(toml.load(config_file))
