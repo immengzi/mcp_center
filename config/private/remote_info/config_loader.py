@@ -5,12 +5,12 @@ from pydantic import BaseModel, Field
 import toml
 
 
-class TopConfigModel(BaseModel):
+class RemoteInfoConfigModel(BaseModel):
     """顶层配置模型"""
     port: int = Field(default=12100, description="MCP服务端口")
 
 
-class TopConfig(BaseConfig):
+class RemoteInfoConfig(BaseConfig):
     """顶层配置文件读取和使用Class"""
 
     def __init__(self) -> None:
@@ -22,5 +22,5 @@ class TopConfig(BaseConfig):
         """加载私有配置文件"""
         config_file = os.getenv("CONFIG")
         if config_file is None:
-            config_file = os.path.join("config", "private", "top", "config.toml")
-        self._config.private_config = TopConfigModel.model_validate(toml.load(config_file))
+            config_file = os.path.join("config", "private", "remote_info", "config.toml")
+        self._config.private_config = RemoteInfoConfigModel.model_validate(toml.load(config_file))

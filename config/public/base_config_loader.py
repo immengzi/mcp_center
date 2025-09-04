@@ -31,6 +31,11 @@ class PublicConfigModel(BaseModel):
     """公共配置模型"""
     language: LanguageEnum = Field(default=LanguageEnum.ZH, description="语言")
     remote_hosts: list[RemoteConfigModel] = Field(default=[], description="远程主机列表")
+    llm_remote: str = Field(default="https://dashscope.aliyuncs.com/compatible-mode/v1", description="LLM远程主机地址")
+    llm_model: str = Field(default="qwen3-coder-480b-a35b-instruct", description="LLM模型名称")
+    llm_api_key: str = Field(default="", description="LLM API Key")
+    max_tokens: int = Field(default=8192, description="LLM最大Token数")
+    temperature: float = Field(default=0.7, description="LLM温度参数")
 
 
 class ConfigModel(BaseModel):
