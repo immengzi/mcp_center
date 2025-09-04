@@ -136,7 +136,9 @@ async def main() -> None:
     headers = {}
     client = MCPClient(url, headers)
     await client.init()
-    result = await client.call_tool("top_collect_tool", {"k": 5})
+    # result = await client.call_tool("top_collect_tool", {"k": 5})
+    # result = await client.call_tool("free_collect_tool", params = {})
+    result = await client.call_tool("vmstat_collect_tool", params = {})
     print(result)
     await client.stop()
 

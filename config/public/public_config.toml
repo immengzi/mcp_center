@@ -4,6 +4,14 @@ language = "zh"
 
 # 远程主机列表配置
 [[remote_hosts]]
+name = "remote_server"
+os_type = "Linux"
+host = "9.13.148.232"
+port = 22
+username = "root"
+password = "Huawei123"
+
+[[remote_hosts]]
 name = "server1"
 os_type = "Linux"
 host = "192.168.1.100"

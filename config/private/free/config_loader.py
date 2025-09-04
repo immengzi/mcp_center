@@ -22,5 +22,5 @@ class TopConfig(BaseConfig):
         """加载私有配置文件"""
         config_file = os.getenv("CONFIG")
         if config_file is None:
-            config_file = os.path.join("config", "private", "free", "config.toml")
+            config_file = os.path.join("config", "private", "top", "config.toml")
         self._config.private_config = TopConfigModel.model_validate(toml.load(config_file))
