@@ -3,13 +3,15 @@
 ## 一、介绍
 mcp_center 用于构建 oe 智能助手，其目录结构如下：
 ```
-/mcp_center/
 ├── client
 ├── config
+├── mcp_config
 ├── README.en.md
 ├── README.md
 ├── requiremenets.txt
-└── servers
+├── run.sh
+├── servers
+└── service
 ```
 
 ### 运行说明
@@ -43,7 +45,8 @@ mcp_center 用于构建 oe 智能助手，其目录结构如下：
 
 3. **文档更新**  
    每新增一个 mcp，需在主目录的 README 中现有 mcp 板块同步新增该 mcp 的基本信息（确保端口不冲突，端口从 12100 开始）。
-
+   每新增一个 mcp，需要在主目录中的 service 中增加.service文件用于将mcp制作成服务
+   每新增一个 mcp，需要在主目录中的 mcp_config 中新建对应名称的目录并在下面创建一个config.json（用于将mcp注册到框架）
 4. **通用参数要求**  
    每个 mcp 的工具都需要一个 host 作为入参，用于与远端服务器通信。
 
