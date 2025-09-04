@@ -4,8 +4,8 @@ After=network.target
 
 [Service]
 User=root
-WorkingDirectory=/usr/lib/euler-copilot-framework/mcp_center
-ExecStart=/usr/bin/python3 servers/shell_generator/src/server.py
+WorkingDirectory=/usr/lib/euler-copilot-framework
+ExecStart=/usr/bin/python3 mcp_center/servers/shell_generator/src/server.py
 Restart=always
 RestartSec=5
 Environment=PYTHONUNBUFFERED=1

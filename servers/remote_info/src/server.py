@@ -11,7 +11,7 @@ import socket
 from datetime import datetime
 from mcp.server import FastMCP
 import telnetlib
-from mcp_center.config.public.base_config_loader import LanguageEnum
+from config.public.base_config_loader import LanguageEnum
 from config.private.remote_info.config_loader import RemoteInfoConfig
 mcp = FastMCP("Remote info MCP Server", host="0.0.0.0", port=RemoteInfoConfig().get_config().private_config.port)
 

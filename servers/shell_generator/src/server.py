@@ -11,7 +11,7 @@ import socket
 from datetime import datetime
 from mcp.server import FastMCP
 import telnetlib
-from mcp_center.config.public.base_config_loader import LanguageEnum
+from config.public.base_config_loader import LanguageEnum
 from config.private.cmd_generator.config_loader import CMDGeneratorConfig
 # Copyright (c) Huawei Technologies Co., Ltd. 2023-2024. All rights reserved.
 from langchain_openai import ChatOpenAI
