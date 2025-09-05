@@ -1,14 +1,3 @@
-# Modify NUMA Binding of Running Processes with MCP
-
-## 1. Service Introduction
-
-This service is a tool based on the `migratepages` command that modifies the NUMA binding of running processes on a specified target (either a remote machine or a local machine).
-
-## 2. Core Tool Information
-
-| Category | Details |
-| ---- | ---- |
-| Tool Name | numa_rebind |
-| Tool Function | Modifies the NUMA binding of running processes on a specified target (either a remote machine or a local machine) using the `migratepages` command.
-
-## 3. Development Requirements
+| Tool Name | Tool Function | Core Input Parameters | Key Return Content |
+| ---- | ---- | ---- | ---- |
+| `numa_rebind_tool` | Modify the NUMA memory binding of running processes on the target device (local/remote) | - `host`: Remote hostname/IP (not required for local collection), `pid`: Process ID, `from_node`: Current NUMA node number where the memory resides, `to_node`: Target NUMA node number | `status`: Operation status (success / error), `message`: Operation result information, `output`: Original output of the command (if any) |

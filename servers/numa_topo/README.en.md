@@ -1,14 +1,3 @@
-# Query NUMA Hardware Topology and System Configuration MCP
-
-## 1. Service Introduction
-
-This service is a tool based on the `numactl` command to query NUMA hardware topology and system configuration MCP. Its core functionality is to query NUMA hardware topology and system configuration.
-
-## 2. Core Tool Information
-
-| Category | Details |
-| ---- | ---- |
-| Tool Name | query_numa_topo |
-| Tool Function | Uses the `numactl` command to obtain the hardware topology and system configuration of a specified target (remote machine or local machine).
-
-## 3. Development Requirements
+| Tool Name | Tool Function | Core Input Parameters | Key Return Content |
+| ---- | ---- | ---- | ---- |
+| `numa_topo_tool` | Retrieve the NUMA hardware topology and system configuration of the target device (local/remote) | - `host`: Remote hostname/IP (not required for local collection) | `nodes_total` Total number of nodes, `nodes` List of node information, each node includes `node_id` Node ID, `cpus` List of CPUs on this node, `size_mb` Memory size (MB), `free_mb` Free memory (MB) |

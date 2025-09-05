@@ -23,7 +23,6 @@ mcp = FastMCP("NUMA Topology MCP Server", host="0.0.0.0", port=NumaTopoConfig().
             - cpus: 该节点上的 CPU 列表
             - size_mb: 内存大小（MB）
             - free_mb: 空闲内存（MB）
-            - distances: 节点间距离字典，键为目标节点 ID，值为距离
     '''
     if NumaTopoConfig().get_config().public_config.language == LanguageEnum.ZH
     else 
@@ -38,7 +37,6 @@ mcp = FastMCP("NUMA Topology MCP Server", host="0.0.0.0", port=NumaTopoConfig().
             - cpus: List of CPUs on this node
             - size_mb: Memory size in MB
             - free_mb: Free memory in MB
-            - distances: Dictionary of node distances, keys are target node IDs, values are distances
     '''
 )
 
@@ -52,8 +50,6 @@ def numa_topo_tool(host: Union[str, None] = None) -> Dict[str, Any]:
             'nodes': []
         }
         lines = output.strip().split('\n')
-        distances_header = None
-        distances_data = {}
 
         for line in lines:
             line = line.strip()
@@ -80,8 +76,7 @@ def numa_topo_tool(host: Union[str, None] = None) -> Dict[str, Any]:
                         'node_id': node_id,
                         'cpus': [],
                         'size_mb': 0,
-                        'free_mb': 0,
-                        'distances': {}
+                        'free_mb': 0
                     })
 
                 # 获取当前节点条目
@@ -95,27 +90,6 @@ def numa_topo_tool(host: Union[str, None] = None) -> Dict[str, Any]:
                 elif key == 'free:':
                     if values and values[0].isdigit():
                         current_node['free_mb'] = int(values[0])
-
-            elif line.startswith('node distances:'):
-                # 准备解析距离表
-                distances_header = []
-
-            elif line.startswith('node') and distances_header is None:
-                # 距离表标题行
-                distances_header = [int(h) for h in line.split()[1:]]
-
-            elif line.startswith('  ') and distances_header:
-                # 距离数据行
-                parts = line.split(':')
-                source = int(parts[0].strip())
-                distances = list(map(int, parts[1].split()))
-
-                # 找到对应的节点并更新距离信息
-                for target_id, dist in zip(distances_header, distances):
-                    # 检查是否有该节点
-                    node = next((n for n in info['nodes'] if n['node_id'] == source), None)
-                    if node:
-                        node['distances'][target_id] = dist
 
         return info
 

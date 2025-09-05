@@ -1,14 +1,3 @@
-# Process Startup Binding to Specified NUMA Node Scenario MCP
-
-## 1. Service Introduction
-
-This service is a tool based on the `numactl` command that binds processes to a specified NUMA node at startup. Its core functionality is to bind processes to a specified NUMA node during startup.
-
-## 2. Core Tool Information
-
-| Category | Details |
-| ---- | ---- |
-| Tool Name | numa_bind |
-| Tool Function | Utilizes the `numactl` command to bind processes to a specified NUMA node at startup, restricting both CPU and memory to the same NUMA node to avoid cross-node operations.
-
-## 3. Development Requirements
+| Tool Name | Tool Function | Core Input Parameters | Key Return Content |
+| ---- | ---- | ---- | ---- |
+| `numa_bind_tool` | Binds a process to a specified NUMA node when starting a process on a target device (local/remote), avoiding cross-node operations | - `host`: Remote hostname/IP (optional for local collection), `numa_node`: Specified NUMA node number (integer), `memory_node`: Specified memory node number (integer), `program_path`: Path to the program to be run | `stdout`: Standard output of the program, `stderr`: Standard error, `exit_code`: Exit status code |

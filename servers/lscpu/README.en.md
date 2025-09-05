@@ -1,14 +1,3 @@
-# CPU Architecture Information Collection MCP
-
-## 1. Service Introduction
-
-This service is a CPU architecture information collection MCP based on the `lscpu` command, with the core function of accurately collecting CPU architecture information from target devices.
-
-## 2. Core Tool Information
-
-| Category | Details |
-| ---- | ---- |
-| Tool Name | lscpu_info_tool |
-| Tool Function | Through the `lscpu` command, it retrieves the CPU architecture, total number of cores, CPU model, maximum turbo frequency, vulnerability status analysis, etc., of the specified target (remote machine or local machine).
-
-## 3. Development Requirements
+| Tool Name | Tool Function | Core Input Parameters | Key Return Content |
+| ---- | ---- | ---- | ---- |
+| `lscpu_info_tool` | Retrieve core static information such as **CPU architecture** from the target device (local/remote) | - `host`: Remote hostname/IP (not required for local collection) | CPU architecture information (including `architecture` (e.g., x86_64), `cpus_total` total number of CPUs, `model_name` CPU model name, `cpu_max_mhz` maximum CPU frequency (MHz, floating point), `vulnerabilities` dictionary of mitigation status for common security vulnerabilities) |

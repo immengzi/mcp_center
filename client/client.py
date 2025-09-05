@@ -136,7 +136,26 @@ async def main() -> None:
     headers = {}
     client = MCPClient(url, headers)
     await client.init()
-    result = await client.call_tool("top_collect_tool", {"k": 5})
+    # result = await client.call_tool("top_collect_tool", {"k": 5})
+    # result = await client.call_tool("lscpu_info_tool", {})
+    # result = await client.call_tool("numa_topo_tool", {})
+    # result = await client.call_tool("numa_bind_tool", {
+    #     "numa_node": 0,
+    #     "memory_node": 0,
+    #     "program_path": "/root/mcp_center/test/hello"
+    # })
+    # result = await client.call_tool("numa_rebind_tool", {
+    #     "pid": 982, # firewalld
+    #     "from_node": 0,
+    #     "to_node": 0
+    # })
+    # result = await client.call_tool("numa_bind_docker_tool", {
+    #     "image": "nginx",
+    #     "cpuset_cpus": "0-3",
+    #     "cpuset_mems": "0",
+    #     "detach": True
+    # })
+
     print(result)
     await client.stop()
 
