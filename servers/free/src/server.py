@@ -45,18 +45,18 @@ mcp = FastMCP("Perf_Svg MCP Server", host="0.0.0.0", port=TopConfig().get_config
     '''
 
 )
-def free_collect_tool(host: str = None):
+def free_collect_tool(host: Union[str, None] = None) -> List[Dict[str, Any]]:
     """使用free命令获取服务器内存整体状态"""
     if host is None:
+        memory_info = []
         result = subprocess.run(['free', '-m'], capture_output=True, text=True)
         lines = result.stdout.split('\n')
-        memory_info = {}
         parts = lines[1].split()
         total = int(parts[1])
         used = int(parts[2])
         free = int(parts[3])
         available = int(parts[6])
-        memory_info = {'total': total, 'used': used, 'free': free, 'available': available}
+        memory_info = [{'total': total, 'used': used, 'free': free, 'available': available}]
         return memory_info
     else:
         for host_config in TopConfig().get_config().public_config.remote_hosts:
@@ -74,13 +74,13 @@ def free_collect_tool(host: str = None):
                 ssh.close()
 
                 lines = output.strip().split('\n')
-                memory_info = {}
+                memory_info = []
                 parts = lines[1].split()
                 total = int(parts[1])
                 used = int(parts[2])
                 free = int(parts[3])
                 available = int(parts[6])
-                memory_info = {'total': total, 'used': used, 'free': free, 'available': available}
+                memory_info = [{'total': total, 'used': used, 'free': free, 'available': available}]
                 return memory_info
         if TopConfig().get_config().public_config.language == LanguageEnum.ZH:
             raise ValueError(f"未找到远程主机: {host}")

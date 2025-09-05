@@ -138,7 +138,10 @@ async def main() -> None:
     await client.init()
     # result = await client.call_tool("top_collect_tool", {"k": 5})
     # result = await client.call_tool("free_collect_tool", params = {})
-    result = await client.call_tool("vmstat_collect_tool", params = {})
+    # result = await client.call_tool("vmstat_collect_tool", params = {})
+    # result = await client.call_tool("sar_collect_tool", {"options": '-u', "interval": 1, "count": 3})
+    # result = await client.call_tool("sync_collect_tool", {})
+    result = await client.call_tool("swapon_collect_tool", {})
     print(result)
     await client.stop()
 

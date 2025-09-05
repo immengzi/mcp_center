@@ -54,12 +54,12 @@ mcp = FastMCP("Perf_Svg MCP Server", host="0.0.0.0", port=TopConfig().get_config
     '''
 
 )
-def vmstat_collect_tool(host: str = None):
+def vmstat_collect_tool(host: Union[str, None] = None) -> List[Dict[str, Any]]:
     """使用vmstat命令获取服务器内存整体状态"""
     if host is None:
         result = subprocess.run(['vmstat'], capture_output=True, text=True)
         lines = result.stdout.split('\n')
-        vmstat_output = {}
+        vmstat_output = []
         parts = lines[2].split()
         r = int(parts[0])
         b = int(parts[1])
@@ -74,7 +74,7 @@ def vmstat_collect_tool(host: str = None):
         id = int(parts[14])
         wa = int(parts[15])
         st = int(parts[16])
-        vmstat_output = {
+        vmstat_output = [{
             'r': r,
             'b': b,
             'si': si,
@@ -88,7 +88,7 @@ def vmstat_collect_tool(host: str = None):
             'id': id,
             'wa': wa,
             'st': st
-        }
+        }]
         return vmstat_output
     else:
         for host_config in TopConfig().get_config().public_config.remote_hosts:
@@ -106,7 +106,7 @@ def vmstat_collect_tool(host: str = None):
                 ssh.close()
 
                 lines = output.strip().split('\n')
-                vmstat_output = {}
+                vmstat_output = []
                 parts = lines[2].split()
                 r = int(parts[0])
                 b = int(parts[1])
@@ -121,7 +121,7 @@ def vmstat_collect_tool(host: str = None):
                 id = int(parts[14])
                 wa = int(parts[15])
                 st = int(parts[16])
-                vmstat_output = {
+                vmstat_output = [{
                     'r': r,
                     'b': b,
                     'si': si,
@@ -135,7 +135,7 @@ def vmstat_collect_tool(host: str = None):
                     'id': id,
                     'wa': wa,
                     'st': st
-                }
+                }]
                 return vmstat_output
         if TopConfig().get_config().public_config.language == LanguageEnum.ZH:
             raise ValueError(f"未找到远程主机: {host}")
