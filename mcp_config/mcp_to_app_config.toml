@@ -1,0 +1,7 @@
+[[applications]]
+appType = "agent"
+name = "hce运维助手"
+description = "hce运维助手,用于诊断hce环境和执行shell命令"
+mcpPath = [ "remote_info_mcp", "shell_generator_mcp",]
+published = true
+

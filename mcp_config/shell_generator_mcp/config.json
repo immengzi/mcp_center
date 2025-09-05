@@ -3,7 +3,6 @@
     "overview": "端测命令生成&执行mcp",
     "description": "端测命令生成&执行mcp",
     "mcpType": "sse",
-    "author": "root",
     "config": {
         "url": "http://127.0.0.1:12101/sse"
     }
