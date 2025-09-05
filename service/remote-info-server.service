@@ -9,6 +9,10 @@ ExecStart=/usr/bin/python3 mcp_center/servers/remote_info/src/server.py
 Restart=always
 RestartSec=5
 Environment=PYTHONUNBUFFERED=1
+KillMode=control-group   
+KillSignal=SIGTERM      
+TimeoutStopSec=30    
+SuccessExitStatus=143 
 
 [Install]
 WantedBy=multi-user.target
