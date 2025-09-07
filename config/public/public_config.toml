@@ -8,10 +8,4 @@ llm_api_key = ""
 max_tokens = 8192
 temperature = 0.7
 # 远程主机列表配置
-[[remote_hosts]]
-name = "本机"
-os_type = "openEuler"
-host = "116.63.144.61"
-port = 22
-username = "root"
-password = "3Gh@w9#pL$v"
+

@@ -120,16 +120,16 @@ class MCPClient:
 
 async def main() -> None:
     """测试MCP Client"""
-    url = "http://0.0.0.0:12101/sse"
+    url = "http://0.0.0.0:12100/sse"
     headers = {}
     client = MCPClient(url, headers)
     await client.init()
-    result = await client.call_tool("cmd_generator_tool", {"goal": "查看磁盘使用情况"})
+    result = await client.call_tool("top_collect_tool", {"host": "116.63.144.61"})
     print(result)
-    cmd = result.content[0].text
-    print(f"生成的命令是: {cmd}")
-    result = await client.call_tool("cmd_executor_tool", {"command": cmd})
-    print(result)
+    # cmd = result.content[0].text
+    # print(f"生成的命令是: {cmd}")
+    # result = await client.call_tool("cmd_executor_tool", {"command": cmd})
+    # print(result)
     await client.stop()
 
 if __name__ == "__main__":

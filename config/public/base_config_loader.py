@@ -1,17 +1,20 @@
 # Copyright (c) Huawei Technologies Co., Ltd. 2023-2025. All rights reserved.
 """配置文件处理模块"""
+import toml
+from enum import Enum
+from typing import Any
+from pydantic import BaseModel, Field
+from pathlib import Path
+from copy import deepcopy
 import sys
 import os
 # 从当前文件位置向上两级到达项目根目录
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../..')))
-from apps.schemas.config import ConfigModel as FrameworkConfigModel
-import os
-from copy import deepcopy
-from pathlib import Path
-from pydantic import BaseModel, Field
-from typing import Any
-from enum import Enum
-import toml
+can_import = True
+try:
+    from apps.schemas.config import ConfigModel as FrameworkConfigModel
+except ImportError as e:
+    can_import = False
 
 # 然后使用绝对导入
 
@@ -54,22 +57,20 @@ class BaseConfig():
 
     def __init__(self) -> None:
         """读取配置文件；当PROD环境变量设置时，配置文件将在读取后删除"""
+        config_file = os.path.join("config", "public", "public_config.toml")
+        self._config = ConfigModel()
+        self._config.public_config = PublicConfigModel.model_validate(toml.load(config_file))
         framework_config_file = os.getenv("CONFIG")
         if framework_config_file is None:
-            framework_config_file = os.path.join("..", "config", "config.toml")
-        if os.path.exists(framework_config_file):
+            if can_import:
+                framework_config_file = os.path.join("..", "config", "config.toml")
+        if framework_config_file and os.path.exists(framework_config_file):
             framework_config = FrameworkConfigModel.model_validate(toml.load(framework_config_file))
-            self._config = ConfigModel()
             self._config.public_config.llm_remote = framework_config.llm.endpoint
             self._config.public_config.llm_model = framework_config.llm.model
             self._config.public_config.llm_api_key = framework_config.llm.key
             self._config.public_config.max_tokens = framework_config.llm.max_tokens
             self._config.public_config.temperature = framework_config.llm.temperature
-        else:
-            config_file = os.path.join("config", "public", "public_config.toml")
-            self._config = ConfigModel()
-            self._config.public_config = PublicConfigModel.model_validate(toml.load(config_file))
-
     def load_private_config(self) -> None:
         """加载私有配置文件"""
         pass
