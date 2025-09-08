@@ -158,6 +158,7 @@ async def main() -> None:
     # result = await client.call_tool("numastat_info_tool", {})
     # result = await client.call_tool("perf_events_tool", {"pid": 995})
     # result = await client.call_tool("perf_events_tool", {})
+    # result = await client.call_tool("perf_stat_tool", {})
 
     print(result)
     await client.stop()

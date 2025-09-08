@@ -1,0 +1,3 @@
+| Tool Name | Tool Function | Core Input Parameters | Key Return Content |
+| ---- | ---- | ---- | ---- |
+| `perf_stat_tool` | Utilizes **perf stat** to collect microarchitectural-level metrics for the entire system within 10 seconds (can be done locally or remotely) | - `host`: Remote hostname/IP (not required for local collection) | Performance statistics (including `cache_misses` for cache misses, `cycles` for CPU cycles, `instructions` for retired instructions, `ipc` for instructions per cycle (=instructions/cycles), `seconds` for actual sampling duration) |
