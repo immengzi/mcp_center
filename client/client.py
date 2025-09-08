@@ -155,6 +155,9 @@ async def main() -> None:
     #     "cpuset_mems": "0",
     #     "detach": True
     # })
+    # result = await client.call_tool("numastat_info_tool", {})
+    # result = await client.call_tool("perf_events_tool", {"pid": 995})
+    # result = await client.call_tool("perf_events_tool", {})
 
     print(result)
     await client.stop()
