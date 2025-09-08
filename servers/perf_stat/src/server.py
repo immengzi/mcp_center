@@ -7,7 +7,7 @@ import paramiko
 
 from mcp.server import FastMCP
 from config.public.base_config_loader import LanguageEnum
-from config.private.perf_stat.config_loader import PerfStatConfig   # 新建一份配置类即可
+from config.private.perf_stat.config_loader import PerfStatConfig
 
 cfg = PerfStatConfig().get_config()
 mcp = FastMCP(
