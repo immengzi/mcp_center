@@ -120,11 +120,11 @@ class MCPClient:
 
 async def main() -> None:
     """测试MCP Client"""
-    url = "http://0.0.0.0:12100/sse"
+    url = "http://0.0.0.0:12102/sse"
     headers = {}
     client = MCPClient(url, headers)
     await client.init()
-    result = await client.call_tool("top_collect_tool", {"host": "116.63.144.61"})
+    result = await client.call_tool("disk_io_insight_tool", {"host": "116.63.144.61", "time_gap": 1, "count": 1})
     print(result)
     # cmd = result.content[0].text
     # print(f"生成的命令是: {cmd}")
