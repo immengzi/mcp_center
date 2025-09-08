@@ -4,10 +4,11 @@ After=network.target
 
 [Service]
 User=root
-WorkingDirectory=/usr/lib/euler-copilot-framework
+WorkingDirectory=/usr/lib/euler-copilot-framework/mcp_center
+# 关键：添加 PYTHONPATH，将工作目录加入模块搜索路径
 Environment=PYTHONUNBUFFERED=1
-Environment=PYTHONPATH=/usr/lib/euler-copilot-framework
-ExecStart=/usr/bin/python3 mcp_center/servers/remote_info/src/server.py
+Environment=PYTHONPATH=/usr/lib/euler-copilot-framework/mcp_center
+ExecStart=/root/anaconda3/envs/py311/bin/python servers/remote_info/src/server.py
 Restart=always
 RestartSec=5
 KillMode=control-group   
