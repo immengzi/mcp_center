@@ -920,7 +920,8 @@ def write_report_tool(report: str) -> str:
         report_path = os.path.join(report_dir, f"system_report_{timestamp}.txt")
         with open(report_path, 'w', encoding='utf-8', errors='ignore') as f:
             f.write(report)
-        return report_path
+        real_path = os.path.realpath(report_path)
+        return real_path
     except Exception as e:
         if RemoteInfoConfig().get_config().public_config.language == LanguageEnum.ZH:
             raise ValueError(f"写入报告文件失败: {str(e)}")
