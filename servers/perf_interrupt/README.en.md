@@ -1,0 +1,3 @@
+| Tool Name | Tool Function | Core Input Parameters | Key Return Content |
+| ---- | ---- | ---- | ---- |
+| `perf_interrupt_health_check` | Checks system interrupt statistics to identify CPU usage caused by high-frequency interrupts (supports both local and remote hosts) | - `host`: Remote hostname/IP (not required for local detection) | - `irq_number`: Interrupt number<br>- `total_count`: Total occurrences<br>- `device`: Device name<br>- `cpu_distribution`: Interrupt distribution across CPU cores<br>- `interrupt_type`: Interrupt type |

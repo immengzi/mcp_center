@@ -1,0 +1,3 @@
+| Tool Name | Tool Function | Core Input Parameters | Key Return Content |
+| ---- | ---- | ---- | ---- |
+| `numa_cross_node` | Automatically detects processes with NUMA cross-node access anomalies (supports both local and remote hosts) | - `host`: Remote hostname/IP (not required for local detection) | - `overall_conclusion`: Overall conclusion, including whether there is an issue (`has_issue`), severity (`severity`), and summary (`summary`)<br>- `anomaly_processes`: List of anomaly processes, each including PID, local memory, remote memory, cross-node ratio, process name, and command line |

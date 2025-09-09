@@ -160,6 +160,8 @@ async def main() -> None:
     # result = await client.call_tool("perf_events_tool", {})
     # result = await client.call_tool("perf_stat_tool", {})
     # result = await client.call_tool("perf_top_tool", {"pid": 995})
+    # result = await client.call_tool("numa_cross_node", {})
+    # result = await client.call_tool("perf_interrupt_health_check", {})
 
     print(result)
     await client.stop()
