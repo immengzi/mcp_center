@@ -16,30 +16,38 @@ mcp = FastMCP("Perf_Svg MCP Server", host="0.0.0.0", port=TopConfig().get_config
 
 
 @mcp.tool(
-    name="sync_collect_tool"
+    name="swapoff_collect_tool"
     if TopConfig().get_config().public_config.language == LanguageEnum.ZH
     else
-    "sync_collect_tool",
+    "swapoff_collect_tool",
     description='''
-    使用sync命令将缓存的数据写入磁盘中
+    使用swapoff命令停用指定swap空间
     1. 输入值如下：
-        - host: 远程主机名称或IP地址，若不提供则表示刷新本机缓存数据
-    2. 返回值为布尔值，表示缓存数据是否刷新成功
+        - host: 远程主机名称或IP地址，若不提供则表示对本机的swap空间进行停用
+        - name: 停用的swap空间路径，或者-a停用所有swap空间
+    2. 返回值为布尔值，表示停用指定swap空间是否成功
     '''
     if TopConfig().get_config().public_config.language == LanguageEnum.ZH
     else
     '''
-    Use the sync command to write cached data to the disk.
-    1. The input values are as follows:
-        - host: The name or IP address of the remote host. If not provided, it indicates refreshing the local cache data.
-    2. The return value is a boolean indicating whether the cache data was successfully refreshed.
+    Use the `swapoff` command to disable the specified swap space.
+    1. Input values are as follows:
+        - `host`: The name or IP address of the remote host. If not provided, it indicates that the swap space on the local machine will be disabled.
+        - `name`: The path of the swap space to be disabled, or `-a` to disable all swap spaces.
+    2. The return value is a boolean indicating whether the specified swap space was successfully disabled.
     '''
 )
-def sync_collect_tool(host: Union[str, None] = None) -> bool:
-    """使用sync命令将缓存的数据写入磁盘"""
+def swapoff_collect_tool(host: Union[str, None] = None, name: str = None) -> bool:
+    """使用swapoff停用指定swap空间"""
     if host is None:
+        if not name:
+            if TopConfig().get_config().public_config.language == LanguageEnum.ZH:
+                raise ValueError("停用swap空间的路径不能为空")
+            else:
+                raise ValueError("name cannot be empty")
         try:
-            command = ['sync']
+            command = ['swapoff']
+            command.append(name)
             result = subprocess.run(command, capture_output=True, text=True)
             returncode = result.returncode
             if returncode == 0:
@@ -63,10 +71,16 @@ def sync_collect_tool(host: Union[str, None] = None) -> bool:
                         username=host_config.username,
                         password=host_config.password
                     )
-                    command = 'sync'
-                    stdin, stdout, stderr = ssh.exec_command(command, timeout = 20)
+                    if not name:
+                        if TopConfig().get_config().public_config.language == LanguageEnum.ZH:
+                            raise ValueError("停用swap空间的路径不能为空")
+                        else:
+                            raise ValueError("name cannot be empty")
+                    command = 'swapoff'
+                    command += f' {name}'
+                    stdin, stdout, stderr = ssh.exec_command(command, timeout=20)
                     error = stderr.read().decode().strip()
-
+                    
                     if error:
                         return False
                     else:

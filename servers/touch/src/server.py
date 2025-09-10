@@ -16,30 +16,38 @@ mcp = FastMCP("Perf_Svg MCP Server", host="0.0.0.0", port=TopConfig().get_config
 
 
 @mcp.tool(
-    name="sync_collect_tool"
+    name="touch_collect_tool"
     if TopConfig().get_config().public_config.language == LanguageEnum.ZH
     else
-    "sync_collect_tool",
+    "touch_collect_tool",
     description='''
-    使用sync命令将缓存的数据写入磁盘中
+    使用touch命令进行文件快速初始化、批量创建、文件时间戳校准与模拟
     1. 输入值如下：
-        - host: 远程主机名称或IP地址，若不提供则表示刷新本机缓存数据
-    2. 返回值为布尔值，表示缓存数据是否刷新成功
+        - host: 远程主机名称或IP地址，若不提供则对本机进行操作
+        - args: touch后跟的参数列表
+    2. 返回值为布尔值，表示touch操作是否成功
     '''
     if TopConfig().get_config().public_config.language == LanguageEnum.ZH
     else
     '''
-    Use the sync command to write cached data to the disk.
-    1. The input values are as follows:
-        - host: The name or IP address of the remote host. If not provided, it indicates refreshing the local cache data.
-    2. The return value is a boolean indicating whether the cache data was successfully refreshed.
+    Using the touch command for quick file initialization, batch creation, and file timestamp calibration and simulation
+    1. Input values are as follows:
+        - host: The name or IP address of the remote host; if not provided, operations will be performed on the local machine
+        - args: The list of parameters following touch
+    2. The return value is a boolean indicating whether the touch operation was successful
     '''
+
 )
-def sync_collect_tool(host: Union[str, None] = None) -> bool:
-    """使用sync命令将缓存的数据写入磁盘"""
+def touch_collect_tool(host: Union[str, None] = None, args: List[str] = []) -> bool:
+    """使用touch命令基于名称、尺寸、日期和权限在指定目录下查找文件"""
     if host is None:
         try:
-            command = ['sync']
+            command = ['touch']
+            if args == []:
+                raise ValueError(f"{command} 命令参数列表不能为空")
+            command.extend([arg for arg in args if arg is not None])
+            # print(f"Running command: {' '.join(command)}")
+
             result = subprocess.run(command, capture_output=True, text=True)
             returncode = result.returncode
             if returncode == 0:
@@ -49,7 +57,7 @@ def sync_collect_tool(host: Union[str, None] = None) -> bool:
         except subprocess.CalledProcessError as e:
             raise RuntimeError(f"执行 {command} 命令失败: {e.stderr}") from e
         except Exception as e:
-            raise RuntimeError(f"执行 {command} 命令时发生未知错误: {str(e)}") from e
+            raise RuntimeError(f"执行 {command} 命令发生未知错误: {str(e)}") from e
     else:
         for host_config in TopConfig().get_config().public_config.remote_hosts:
             if host == host_config.name or host == host_config.host:
@@ -63,8 +71,11 @@ def sync_collect_tool(host: Union[str, None] = None) -> bool:
                         username=host_config.username,
                         password=host_config.password
                     )
-                    command = 'sync'
-                    stdin, stdout, stderr = ssh.exec_command(command, timeout = 20)
+                    command = 'touch'
+                    if args == []:
+                        raise ValueError(f"{command} 命令参数列表不能为空")
+                    command += ''.join(f' {arg}' for arg in args if arg is not None)
+                    stdin, stdout, stderr = ssh.exec_command(command)
                     error = stderr.read().decode().strip()
 
                     if error:

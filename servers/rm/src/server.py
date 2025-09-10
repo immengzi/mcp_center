@@ -16,31 +16,44 @@ mcp = FastMCP("Perf_Svg MCP Server", host="0.0.0.0", port=TopConfig().get_config
 
 
 @mcp.tool(
-    name="sync_collect_tool"
+    name="rm_collect_tool"
     if TopConfig().get_config().public_config.language == LanguageEnum.ZH
     else
-    "sync_collect_tool",
+    "rm_collect_tool",
     description='''
-    使用sync命令将缓存的数据写入磁盘中
+    使用rm命令对文件或文件夹进行删除
     1. 输入值如下：
-        - host: 远程主机名称或IP地址，若不提供则表示刷新本机缓存数据
-    2. 返回值为布尔值，表示缓存数据是否刷新成功
+        - host: 远程主机名称或IP地址，若不提供则对本机进行操作
+        - path: 要进行编辑的文件路径
+    2. 返回值为布尔值，表示rm操作是否成功
     '''
     if TopConfig().get_config().public_config.language == LanguageEnum.ZH
     else
     '''
-    Use the sync command to write cached data to the disk.
-    1. The input values are as follows:
-        - host: The name or IP address of the remote host. If not provided, it indicates refreshing the local cache data.
-    2. The return value is a boolean indicating whether the cache data was successfully refreshed.
+    Use the rm command to delete files or folders
+    1. Input values are as follows:
+        - host: The name or IP address of the remote host; if not provided, the operation is performed on the local machine
+        - path: The file path to be edited
+    2. The return value is a boolean indicating whether the rm operation was successful
     '''
+
 )
-def sync_collect_tool(host: Union[str, None] = None) -> bool:
-    """使用sync命令将缓存的数据写入磁盘"""
+def rm_collect_tool(host: Union[str, None] = None, path: str = None) -> bool:
+    """使用rm命令对文件进行修改"""
+    ALLOWED_PREFIXES = ('/tmp', '/home/user/trash')  # 仅允许删除这些前缀的路径，白名单
     if host is None:
         try:
-            command = ['sync']
-            result = subprocess.run(command, capture_output=True, text=True)
+            command = ['rm']
+            command.append('-rf')
+            if not path:
+                raise ValueError(f"{command} 命令，删除的文件或文件夹路径不能为空")
+            abs_path = os.path.abspath(path)
+            print(abs_path)
+            if not any(abs_path.startswith(prefix) for prefix in ALLOWED_PREFIXES):
+                raise ValueError(f"路径 {abs_path} 不在允许删除的范围内")
+            command.append(path)
+            print(command)
+            result = subprocess.run(command, check=True)
             returncode = result.returncode
             if returncode == 0:
                 return True
@@ -49,7 +62,7 @@ def sync_collect_tool(host: Union[str, None] = None) -> bool:
         except subprocess.CalledProcessError as e:
             raise RuntimeError(f"执行 {command} 命令失败: {e.stderr}") from e
         except Exception as e:
-            raise RuntimeError(f"执行 {command} 命令时发生未知错误: {str(e)}") from e
+            raise RuntimeError(f"执行 {command} 命令发生未知错误: {str(e)}") from e
     else:
         for host_config in TopConfig().get_config().public_config.remote_hosts:
             if host == host_config.name or host == host_config.host:
@@ -63,8 +76,15 @@ def sync_collect_tool(host: Union[str, None] = None) -> bool:
                         username=host_config.username,
                         password=host_config.password
                     )
-                    command = 'sync'
-                    stdin, stdout, stderr = ssh.exec_command(command, timeout = 20)
+                    command = 'rm -rf'
+                    if not path:
+                        raise ValueError(f"{command} 命令，删除的文件或文件夹路径不能为空")
+                    abs_path = os.path.abspath(path)
+                    print(abs_path)
+                    if not any(abs_path.startswith(prefix) for prefix in ALLOWED_PREFIXES):
+                        raise ValueError(f"路径 {abs_path} 不在允许删除的范围内")
+                    command += f' {path}'
+                    stdin, stdout, stderr = ssh.exec_command(command)
                     error = stderr.read().decode().strip()
 
                     if error:
