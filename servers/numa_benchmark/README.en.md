@@ -1,0 +1,3 @@
+| Tool Name | Tool Function | Core Input Parameters | Key Return Content |
+| ---- | ---- | ---- | ---- |
+| `numa_benchmark` | Automatically detects NUMA topology and performs performance benchmark tests under different binding strategies (both local and remote) | - `benchmark`: Path to the benchmark program (required)<br>- `host`: Remote hostname/IP (not required for local testing) | Test result dictionary, including `numa_nodes` (number of NUMA nodes), `test_results` (test results for each scenario, including `local_binding` local binding, `cross_node_binding` cross-node binding, `no_binding` no binding commands, outputs, return codes, and metrics), and `timestamp` (timestamp) |
