@@ -171,6 +171,7 @@ async def main() -> None:
     # result = await client.call_tool("numa_benchmark", {
     #     'benchmark': "/root/mcp_center/stream"
     # })
+    # result = await client.call_tool("numa_hardware", {})
 
     print(result)
     await client.stop()
