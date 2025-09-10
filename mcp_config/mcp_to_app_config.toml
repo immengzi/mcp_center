@@ -5,3 +5,16 @@ description = "hce运维助手,用于诊断hce环境和执行shell命令"
 mcpPath = [ "remote_info_mcp", "shell_generator_mcp",]
 published = true
 
+[[applications]]
+appType = "agent"
+name = "systrace运维助手"
+description = "systrace运维助手,用于分析ai训练情况"
+mcpPath = [ "systrace_mcp",]
+published = true
+
+[[applications]]
+appType = "agent"
+name = "调优助手"
+description = "调优助手,用于分析系统情况进行调优"
+mcpPath = [ "tune_mcp",]
+published = true
