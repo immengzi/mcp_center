@@ -162,6 +162,7 @@ async def main() -> None:
     # result = await client.call_tool("perf_top_tool", {"pid": 995})
     # result = await client.call_tool("numa_cross_node", {})
     # result = await client.call_tool("perf_interrupt_health_check", {})
+    result = await client.call_tool("strace_syscall", {"pid": 1322})
 
     print(result)
     await client.stop()
