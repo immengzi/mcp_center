@@ -1,0 +1,3 @@
+| Tool Name | Tool Function | Core Input Parameters | Key Return Content |
+| ---- | ---- | ---- | ---- |
+| `flame_graph` | Generates CPU flame graphs for performance analysis (supports both local and remote hosts) | - `host`: Remote host address (optional)<br>- `perf_data_path`: Input path for perf.data (default: /var/log/profiling/perf.data)<br>- `output_path`: Output path for SVG (default: /home/ubuntu/results/cpu_flamegraph.svg)<br>- `flamegraph_path`: Path to the FlameGraph script (default: /opt/FlameGraph) | - `svg_path`: Path to the generated flame graph file<br>- `status`: Generation status (success/failure)<br>- `message`: Status information |

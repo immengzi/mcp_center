@@ -162,7 +162,12 @@ async def main() -> None:
     # result = await client.call_tool("perf_top_tool", {"pid": 995})
     # result = await client.call_tool("numa_cross_node", {})
     # result = await client.call_tool("perf_interrupt_health_check", {})
-    result = await client.call_tool("strace_syscall", {"pid": 1322})
+    # result = await client.call_tool("strace_syscall", {"pid": 1322})
+    result = await client.call_tool("flame_graph", {
+        'perf_data_path': "/root/mcp_center/perf.data",
+        'output_path': "/root/mcp_center/cpu_flamegraph.svg",
+        'flamegraph_path': "/root/mcp_center/FlameGraph"
+    })
 
     print(result)
     await client.stop()
