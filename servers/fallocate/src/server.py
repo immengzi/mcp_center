@@ -16,90 +16,155 @@ mcp = FastMCP("Perf_Svg MCP Server", host="0.0.0.0", port=TopConfig().get_config
 
 
 @mcp.tool(
-    name="swapon_collect_tool"
+    name="fallocate_collect_tool"
     if TopConfig().get_config().public_config.language == LanguageEnum.ZH
     else
-    "swapon_collect_tool",
+    "fallocate_collect_tool",
     description='''
-    使用swapon命令查看当前swap设备状态
+    使用fallocate命令临时创建并启用swap文件
     1. 输入值如下：
-        - host: 远程主机名称或IP地址，若不提供则表示获取本机的swap设备状态
-    2. 返回值为包含进程信息的字典列表，每个字典包含以下键
-        - name: 设备名称
-        - type: 类型
-        - size: 大小
-        - used: 当前已使用的swap空间
-        - prio: swap分区优先级
+        - host: 远程主机名称或IP地址，若不提供则表示在本机临时创建并启用swap文件
+        - name: swap空间对应的设备或文件路径
+        - size: 创建的swap空间大小
+    2. 返回值为布尔值，表示创建启用swap文件是否成功
     '''
     if TopConfig().get_config().public_config.language == LanguageEnum.ZH
     else
     '''
-    Use the top command to get the top k memory-consuming processes on a remote machine or the local machine.
-    1. Input values are as follows:
-        - host: Remote host name or IP address. If not provided, it means to get
-            the top k processes of the local machine.
-        - k: The number of processes to be obtained, the default is 5, which can be adjusted according to actual needs.
-    2. The return value is a list of dictionaries containing process information, each dictionary contains
-        the following keys:
-        - pid: Process ID
-        - name: Process name
-        - memory: Memory usage (in MB)
+    Use the fallocate command to temporarily create and enable a swap file.
+    1. Input values as follows:
+        - host: The name or IP address of the remote host. If not provided, it indicates that the swap file will be temporarily created and enabled on the local machine.
+        - name: The device or file path corresponding to the swap space.
+        - size: The size of the swap space to be created.
+    2. The return value is a boolean indicating whether the creation and enabling of the swap file was successful.
     '''
-
 )
-def swapon_collect_tool(host: Union[str, None] = None) -> List[Dict[str, Any]]:
-    """使用swapon获取当前swap设备状态"""
+def fallocate_collect_tool(host: Union[str, None] = None, name: str = None, size: str = None) -> bool:
+    """使用fallocate命令临时创建并启用swap文件"""
     if host is None:
-        swap_devices = []
-        result = subprocess.run(['swapon'], capture_output=True, text=True)
-        lines = result.stdout.split('\n')
-        for line in lines[1:-1]:
-            parts = line.split()
-            name = parts[0]
-            device_type = parts[1]
-            size = parts[2]
-            used = parts[3]
-            prio = parts[4]
-            swap_devices.append({
-                "name": name,
-                "type": device_type,
-                "size": size,
-                "used": used,
-                "prio": prio
-            })
-        return swap_devices
+        if not name or not size:
+            if TopConfig().get_config().public_config.language == LanguageEnum.ZH:
+                raise ValueError("临时创建swap文件的文件路径或大小不能为空")
+            else:
+                raise ValueError("name or size cannot be empty")
+        try:
+            cmd_fallocate = ['fallocate']
+            cmd_fallocate.append('-l')
+            cmd_fallocate.append(size)
+            cmd_fallocate.append(name)
+            print(f"Running command: {' '.join(cmd_fallocate)}")
+            result = subprocess.run(cmd_fallocate, capture_output=True, text=True)
+            returncode = result.returncode
+            if returncode != 0:
+                return False
+        except subprocess.CalledProcessError as e:
+            raise RuntimeError(f"执行 {cmd_fallocate} 命令失败: {e.stderr}") from e
+        except Exception as e:
+            raise RuntimeError(f"执行 {cmd_fallocate} 命令时发生未知错误: {str(e)}") from e
+        
+        try:
+            cmd_chmod = ['chmod']
+            cmd_chmod.append('600')
+            cmd_chmod.append(name)
+            result = subprocess.run(cmd_chmod, capture_output=True, text=True)
+            returncode = result.returncode
+            if returncode != 0:
+                return False
+        except subprocess.CalledProcessError as e:
+            raise RuntimeError(f"执行 {cmd_chmod} 命令失败: {e.stderr}") from e
+        except Exception as e:
+            raise RuntimeError(f"执行 {cmd_chmod} 命令时发生未知错误: {str(e)}") from e
+
+        try:
+            cmd_mkswap = ['mkswap']
+            cmd_mkswap.append(name)
+            result = subprocess.run(cmd_mkswap, capture_output=True, text=True)
+            returncode = result.returncode
+            if returncode != 0:
+                return False
+        except subprocess.CalledProcessError as e:
+            raise RuntimeError(f"执行 {cmd_mkswap} 命令失败: {e.stderr}") from e
+        except Exception as e:
+            raise RuntimeError(f"执行 {cmd_mkswap} 命令时发生未知错误: {str(e)}") from e
+
+        try:
+            cmd_swapon = ['swapon']
+            cmd_swapon.append(name)
+            result = subprocess.run(cmd_swapon, capture_output=True, text=True)
+            returncode = result.returncode
+            if returncode != 0:
+                return False
+        except subprocess.CalledProcessError as e:
+            raise RuntimeError(f"执行 {cmd_swapon} 命令失败: {e.stderr}") from e
+        except Exception as e:
+            raise RuntimeError(f"执行 {cmd_swapon} 命令时发生未知错误: {str(e)}") from e
+
+        return True
     else:
         for host_config in TopConfig().get_config().public_config.remote_hosts:
             if host == host_config.name or host == host_config.host:
-                ssh = paramiko.SSHClient()
-                ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-                ssh.connect(
-                    hostname=host_config.host,
-                    port=host_config.port,
-                    username=host_config.username,
-                    password=host_config.password
-                )
-                stdin, stdout, stderr = ssh.exec_command(f"swapon")
-                output = stdout.read().decode()
-                ssh.close()
-                
-                lines = output.stdout.split('\n')
-                swap_devices = []
-                for line in lines[1:-1]:
-                    parts = line.split()
-                    name = parts[0]
-                    device_type = parts[1]
-                    size = parts[2]
-                    used = parts[3]
-                    prio = parts[4]
-                    swap_devices.append({
-                        "name": name,
-                        "type": device_type,
-                        "size": size,
-                        "used": used,
-                        "prio": prio
-                    })
-                return swap_devices
+                try:
+                    # 建立SSH连接
+                    ssh = paramiko.SSHClient()
+                    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+                    ssh.connect(
+                        hostname=host_config.host,
+                        port=host_config.port,
+                        username=host_config.username,
+                        password=host_config.password
+                    )
+
+                    if not name or not size:
+                        if TopConfig().get_config().public_config.language == LanguageEnum.ZH:
+                            raise ValueError("临时创建swap文件的文件路径或大小不能为空")
+                        else:
+                            raise ValueError("name or size cannot be empty")
+
+                    cmd_fallocate = 'fallocate'
+                    cmd_fallocate += ' -l'
+                    cmd_fallocate += f' {size}'
+                    cmd_fallocate += f' {name}'
+                    stdin, stdout, stderr = ssh.exec_command(cmd_fallocate, timeout = 20)
+                    error = stderr.read().decode().strip()
+                    if error:
+                        return False
+                    
+                    cmd_chmod = 'chmod'
+                    cmd_chmod += ' 600'
+                    cmd_chmod += f' {name}'
+                    stdin, stdout, stderr = ssh.exec_command(cmd_chmod, timeout = 20)
+                    error = stderr.read().decode().strip()
+                    if error:
+                        return False
+
+                    cmd_mkswap = 'mkswap'
+                    cmd_mkswap += f' {name}'
+                    stdin, stdout, stderr = ssh.exec_command(cmd_mkswap, timeout = 20)
+                    error = stderr.read().decode().strip()
+                    if error:
+                        return False
+                    
+                    cmd_swapon = 'swapon'
+                    cmd_swapon += f' {name}'
+                    stdin, stdout, stderr = ssh.exec_command(cmd_swapon, timeout = 20)
+                    error = stderr.read().decode().strip()
+                    if error:
+                        return False
+                    
+                    return True
+                except paramiko.AuthenticationException:
+                    raise ValueError("SSH认证失败，请检查用户名和密码")
+                except paramiko.SSHException as e:
+                    raise ValueError(f"SSH连接错误: {str(e)}")
+                except Exception as e:
+                    raise ValueError(f"获取远程内存信息失败: {str(e)}")
+                finally:
+                    # 确保SSH连接关闭
+                    if ssh is not None:
+                        try:
+                            ssh.close()
+                        except Exception:
+                            pass
         if TopConfig().get_config().public_config.language == LanguageEnum.ZH:
             raise ValueError(f"未找到远程主机: {host}")
         else:
