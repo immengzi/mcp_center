@@ -7,14 +7,14 @@ published = true
 
 [[applications]]
 appType = "agent"
-name = "systrace运维助手"
+name = "智能运维"
 description = "systrace运维助手,用于分析ai训练情况"
 mcpPath = [ "systrace_mcp",]
 published = true
 
 [[applications]]
 appType = "agent"
-name = "调优助手"
+name = "智能调优"
 description = "调优助手,用于分析系统情况进行调优"
 mcpPath = [ "tune_mcp",]
 published = true
