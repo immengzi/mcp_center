@@ -172,6 +172,9 @@ async def main() -> None:
     #     'benchmark': "/root/mcp_center/stream"
     # })
     # result = await client.call_tool("numa_hardware", {})
+    # result = await client.call_tool("monitor_docker", {
+    #     "container_id": "258b82ea"
+    # })
 
     print(result)
     await client.stop()

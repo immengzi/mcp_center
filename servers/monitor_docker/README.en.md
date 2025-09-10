@@ -1,0 +1,3 @@
+| Tool Name | Tool Function | Core Input Parameters | Key Return Content |
+| ---- | ---- | ---- | ---- |
+| `monitor_docker` | Monitor NUMA memory access of a specified Docker container | - `container_id`: The ID or name of the container to be monitored | `status`: Operation status (success / error) <br>`message`: Operation result information<br>`output`: NUMA memory access statistics (including memory usage of each NUMA node) |
