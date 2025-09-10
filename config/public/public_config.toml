@@ -34,3 +34,11 @@ host = "172.16.0.20"
 port = 22
 username = "testuser"
 password = "testpass789"
+
+[[remote_hosts]]
+name = "arm64"
+os_type = "Linux"
+host = "9.82.233.117"
+port = 22
+username = "root"
+password = "Huawei12#$"
