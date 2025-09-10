@@ -4,7 +4,7 @@
 import asyncio
 import logging
 from contextlib import AsyncExitStack
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Union
 from pydantic import BaseModel, Field
 from enum import Enum
 from mcp import ClientSession, StdioServerParameters
@@ -30,7 +30,7 @@ class MCPClient:
         """初始化MCP Client"""
         self.url = url
         self.headers = headers
-        self.client: ClientSession | None = None
+        self.client: Union[ClientSession, None] = None
         self.status = MCPStatus.UNINITIALIZED
 
     async def _main_loop(
@@ -41,12 +41,6 @@ class MCPClient:
 
         抽象函数；作用为在初始化的时候使用MCP SDK创建Client
         由于目前MCP的实现中Client和Session是1:1的关系，所以直接创建了 :class:`~mcp.ClientSession`
-
-        :param str user_sub: 用户ID
-        :param str mcp_id: MCP ID
-        :param MCPServerSSEConfig | MCPServerStdioConfig config: MCP配置
-        :return: MCP ClientSession
-        :rtype: ClientSession
         """
         # 创建Client
         try:
@@ -89,12 +83,6 @@ class MCPClient:
     async def init(self) -> None:
         """
         初始化 MCP Client类
-
-        初始化MCP Client，并创建MCP Server进程和ClientSession
-
-        :param str user_sub: 用户ID
-        :param str mcp_id: MCP ID
-        :param MCPServerSSEConfig | MCPServerStdioConfig config: MCP配置
         :return: None
         """
         # 初始化变量
@@ -132,7 +120,7 @@ class MCPClient:
 
 async def main() -> None:
     """测试MCP Client"""
-    url = "http://0.0.0.0:12100/sse"
+    url = "http://0.0.0.0:12101/sse"
     headers = {}
     client = MCPClient(url, headers)
     await client.init()
