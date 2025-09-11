@@ -609,7 +609,7 @@ def get_disk_info_tool(host: Union[str, None] = None) -> List[Dict[str, Any]]:
             )
 
             # 使用df命令获取磁盘信息，增加兼容性和容错性
-            cmd = "df -h --output=source,target,fstype,size,used,avail,pcent -x tmpfs -x devtmpfs"
+            cmd = "df -h"
             stdin, stdout, stderr = ssh.exec_command(cmd, timeout=5)
             error = stderr.read().decode().strip()
             output = stdout.read().decode().strip()
