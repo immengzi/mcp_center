@@ -124,11 +124,7 @@ async def main() -> None:
     headers = {}
     client = MCPClient(url, headers)
     await client.init()
-    result = await client.call_tool("cmd_generator_tool", {"goal": "生成一个shell命令来查看当前时间"})
-    print(result)
-    cmd = result.content[0].text
-    print(f"生成的命令是: {cmd}")
-    result = await client.call_tool("cmd_executor_tool", {"command": cmd})
+    result = await client.call_tool("top_collect_tool", {"k": 5})
     print(result)
     await client.stop()
 
