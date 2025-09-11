@@ -609,7 +609,7 @@ def get_disk_info_tool(host: Union[str, None] = None) -> List[Dict[str, Any]]:
             )
 
             # 使用df命令获取磁盘信息，增加兼容性和容错性
-            cmd = "df -h --output=source,target,fstype,size,used,avail,pcent -x tmpfs -x devtmpfs"
+            cmd = "df -h"
             stdin, stdout, stderr = ssh.exec_command(cmd, timeout=5)
             error = stderr.read().decode().strip()
             output = stdout.read().decode().strip()
@@ -914,10 +914,8 @@ def write_report_tool(report: str) -> str:
         else:
             raise ValueError("Report content cannot be empty")
     try:
-        report_dir = RemoteInfoConfig().get_config().public_config.report_directory
-        os.makedirs(report_dir, exist_ok=True)
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S%f")
-        report_path = os.path.join(report_dir, f"system_report_{timestamp}.txt")
+        report_path = f"system_report_{timestamp}.txt"
         with open(report_path, 'w', encoding='utf-8', errors='ignore') as f:
             f.write(report)
         real_path = os.path.realpath(report_path)
