@@ -1,0 +1,9 @@
+{
+    "name": "nohup命令生成&执行mcp",
+    "overview": "nohup命令生成&执行mcp",
+    "description": "nohup命令生成&执行mcp",
+    "mcpType": "sse",
+    "config": {
+        "url": "http://127.0.0.1:12112/sse"
+    }
+}

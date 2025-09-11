@@ -1,0 +1,9 @@
+{
+    "name": "strace命令生成&执行mcp",
+    "overview": "strace命令生成&执行mcp",
+    "description": "strace命令生成&执行mcp",
+    "mcpType": "sse",
+    "config": {
+        "url": "http://127.0.0.1:12113/sse"
+    }
+}
