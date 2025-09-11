@@ -1,13 +1,11 @@
-# Specification Document for Process Information Collection MCP (Management Control Program)
+# Specification Document for Swap Space Disabling MCP (Management Control Program)
 
 ## 1. Service Introduction
-This service is an MCP (Management Control Program) for process information collection based on the `top` command. Its core function is to accurately collect process running data of target devices, providing basic data support for subsequent process analysis and resource monitoring.
+This service is an MCP (Management Control Program) based on the `swapoff` command for disabling swap space. Its core function is to disable swap space, release enabled swap partitions or swap files, and remove them from the system's memory management.
 
 ## 2. Core Tool Information
-| Category | Details |
-| -------- | ------- |
-| Tool Name | top_collect_tool |
-| Tool Function | Using the `top` command to obtain information about the **top k processes with the highest memory usage** in the specified target (remote machine or local machine). (k is a configurable parameter, supporting setting specific values according to actual needs) |
+| Tool Name | Tool Function | Core Input Parameters | Key Return Content |
+| ---- | ---- | ---- | ---- |
+| `swapoff_disabling_swap_tool` | Disable swap space, release enabled swap partitions or swap files, and remove them from the system's memory management | - `host`: Remote hostname/IP (optional for local collection)<br>- `name`: Path of the swap space to be disabled | Boolean value indicating whether the specified swap space was successfully disabled |
 
 ## 3. To-be-developed Requirements
-It is planned to develop a malicious process identification function based on the `top` command. By analyzing dimensions such as process memory usage characteristics, CPU usage, running duration, and process name legitimacy, it will assist in locating potential malicious processes and improve the security monitoring capability of device processes.

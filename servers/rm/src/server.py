@@ -11,35 +11,35 @@ import tempfile
 from datetime import datetime
 from mcp.server import FastMCP
 from config.public.base_config_loader import LanguageEnum
-from config.private.top.config_loader import TopConfig
-mcp = FastMCP("Perf_Svg MCP Server", host="0.0.0.0", port=TopConfig().get_config().private_config.port)
+from config.private.rm.config_loader import RmConfig
+mcp = FastMCP("Rm MCP Server", host="0.0.0.0", port=RmConfig().get_config().private_config.port)
 
 
 @mcp.tool(
     name="rm_collect_tool"
-    if TopConfig().get_config().public_config.language == LanguageEnum.ZH
+    if RmConfig().get_config().public_config.language == LanguageEnum.ZH
     else
     "rm_collect_tool",
     description='''
     使用rm命令对文件或文件夹进行删除
     1. 输入值如下：
         - host: 远程主机名称或IP地址，若不提供则对本机进行操作
-        - path: 要进行编辑的文件路径
+        - path: 要进行删除的文件或文件夹路径
     2. 返回值为布尔值，表示rm操作是否成功
     '''
-    if TopConfig().get_config().public_config.language == LanguageEnum.ZH
+    if RmConfig().get_config().public_config.language == LanguageEnum.ZH
     else
     '''
     Use the rm command to delete files or folders
     1. Input values are as follows:
         - host: The name or IP address of the remote host; if not provided, the operation is performed on the local machine
-        - path: The file path to be edited
+        - path: The path of the file or folder to be deleted
     2. The return value is a boolean indicating whether the rm operation was successful
     '''
 
 )
 def rm_collect_tool(host: Union[str, None] = None, path: str = None) -> bool:
-    """使用rm命令对文件进行修改"""
+    """使用rm命令对文件或文件夹进行删除"""
     ALLOWED_PREFIXES = ('/tmp', '/home/user/trash')  # 仅允许删除这些前缀的路径，白名单
     if host is None:
         try:
@@ -64,7 +64,7 @@ def rm_collect_tool(host: Union[str, None] = None, path: str = None) -> bool:
         except Exception as e:
             raise RuntimeError(f"执行 {command} 命令发生未知错误: {str(e)}") from e
     else:
-        for host_config in TopConfig().get_config().public_config.remote_hosts:
+        for host_config in RmConfig().get_config().public_config.remote_hosts:
             if host == host_config.name or host == host_config.host:
                 try:
                     # 建立SSH连接
@@ -96,7 +96,7 @@ def rm_collect_tool(host: Union[str, None] = None, path: str = None) -> bool:
                 except paramiko.SSHException as e:
                     raise ValueError(f"SSH连接错误: {str(e)}")
                 except Exception as e:
-                    raise ValueError(f"获取远程内存信息失败: {str(e)}")
+                    raise ValueError(f"远程执行 {command} 失败: {str(e)}")
                 finally:
                     # 确保SSH连接关闭
                     if ssh is not None:
@@ -104,7 +104,7 @@ def rm_collect_tool(host: Union[str, None] = None, path: str = None) -> bool:
                             ssh.close()
                         except Exception:
                             pass
-        if TopConfig().get_config().public_config.language == LanguageEnum.ZH:
+        if RmConfig().get_config().public_config.language == LanguageEnum.ZH:
             raise ValueError(f"未找到远程主机: {host}")
         else:
             raise ValueError(f"Remote host not found: {host}")

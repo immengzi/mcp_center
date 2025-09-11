@@ -11,15 +11,15 @@ import tempfile
 from datetime import datetime
 from mcp.server import FastMCP
 from config.public.base_config_loader import LanguageEnum
-from config.private.top.config_loader import TopConfig
-mcp = FastMCP("Perf_Svg MCP Server", host="0.0.0.0", port=TopConfig().get_config().private_config.port)
+from config.private.swapoff.config_loader import SwapoffConfig
+mcp = FastMCP("Swapoff MCP Server", host="0.0.0.0", port=SwapoffConfig().get_config().private_config.port)
 
 
 @mcp.tool(
-    name="swapoff_collect_tool"
-    if TopConfig().get_config().public_config.language == LanguageEnum.ZH
+    name="swapoff_disabling_swap_tool"
+    if SwapoffConfig().get_config().public_config.language == LanguageEnum.ZH
     else
-    "swapoff_collect_tool",
+    "swapoff_disabling_swap_tool",
     description='''
     使用swapoff命令停用指定swap空间
     1. 输入值如下：
@@ -27,7 +27,7 @@ mcp = FastMCP("Perf_Svg MCP Server", host="0.0.0.0", port=TopConfig().get_config
         - name: 停用的swap空间路径，或者-a停用所有swap空间
     2. 返回值为布尔值，表示停用指定swap空间是否成功
     '''
-    if TopConfig().get_config().public_config.language == LanguageEnum.ZH
+    if SwapoffConfig().get_config().public_config.language == LanguageEnum.ZH
     else
     '''
     Use the `swapoff` command to disable the specified swap space.
@@ -37,14 +37,14 @@ mcp = FastMCP("Perf_Svg MCP Server", host="0.0.0.0", port=TopConfig().get_config
     2. The return value is a boolean indicating whether the specified swap space was successfully disabled.
     '''
 )
-def swapoff_collect_tool(host: Union[str, None] = None, name: str = None) -> bool:
+def swapoff_disabling_swap_tool(host: Union[str, None] = None, name: str = None) -> bool:
     """使用swapoff停用指定swap空间"""
     if host is None:
         if not name:
-            if TopConfig().get_config().public_config.language == LanguageEnum.ZH:
+            if SwapoffConfig().get_config().public_config.language == LanguageEnum.ZH:
                 raise ValueError("停用swap空间的路径不能为空")
             else:
-                raise ValueError("name cannot be empty")
+                raise ValueError("The path for disabling swap space cannot be empty.")
         try:
             command = ['swapoff']
             command.append(name)
@@ -55,11 +55,17 @@ def swapoff_collect_tool(host: Union[str, None] = None, name: str = None) -> boo
             else:
                 return False
         except subprocess.CalledProcessError as e:
-            raise RuntimeError(f"执行 {command} 命令失败: {e.stderr}") from e
+            if SwapoffConfig().get_config().public_config.language == LanguageEnum.ZH:
+                raise RuntimeError(f"执行 {command} 命令失败: {e.stderr}") from e
+            else:
+                raise RuntimeError(f"Failed to execute the free command: {e.stderr}") from e
         except Exception as e:
-            raise RuntimeError(f"执行 {command} 命令时发生未知错误: {str(e)}") from e
+            if SwapoffConfig().get_config().public_config.language == LanguageEnum.ZH:
+                raise RuntimeError(f"执行 {command} 命令时发生未知错误: {str(e)}") from e
+            else:
+                raise RuntimeError(f"An unknown error occurred while obtaining memory information: {str(e)}") from e
     else:
-        for host_config in TopConfig().get_config().public_config.remote_hosts:
+        for host_config in SwapoffConfig().get_config().public_config.remote_hosts:
             if host == host_config.name or host == host_config.host:
                 try:
                     # 建立SSH连接
@@ -72,10 +78,10 @@ def swapoff_collect_tool(host: Union[str, None] = None, name: str = None) -> boo
                         password=host_config.password
                     )
                     if not name:
-                        if TopConfig().get_config().public_config.language == LanguageEnum.ZH:
+                        if SwapoffConfig().get_config().public_config.language == LanguageEnum.ZH:
                             raise ValueError("停用swap空间的路径不能为空")
                         else:
-                            raise ValueError("name cannot be empty")
+                            raise ValueError("The path for disabling swap space cannot be empty.")
                     command = 'swapoff'
                     command += f' {name}'
                     stdin, stdout, stderr = ssh.exec_command(command, timeout=20)
@@ -90,7 +96,7 @@ def swapoff_collect_tool(host: Union[str, None] = None, name: str = None) -> boo
                 except paramiko.SSHException as e:
                     raise ValueError(f"SSH连接错误: {str(e)}")
                 except Exception as e:
-                    raise ValueError(f"获取远程内存信息失败: {str(e)}")
+                    raise ValueError(f"远程执行 {command} 失败: {str(e)}")
                 finally:
                     # 确保SSH连接关闭
                     if ssh is not None:
@@ -98,7 +104,7 @@ def swapoff_collect_tool(host: Union[str, None] = None, name: str = None) -> boo
                             ssh.close()
                         except Exception:
                             pass
-        if TopConfig().get_config().public_config.language == LanguageEnum.ZH:
+        if SwapoffConfig().get_config().public_config.language == LanguageEnum.ZH:
             raise ValueError(f"未找到远程主机: {host}")
         else:
             raise ValueError(f"Remote host not found: {host}")

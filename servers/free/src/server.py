@@ -11,13 +11,13 @@ import tempfile
 from datetime import datetime
 from mcp.server import FastMCP
 from config.public.base_config_loader import LanguageEnum
-from config.private.top.config_loader import TopConfig
-mcp = FastMCP("Perf_Svg MCP Server", host="0.0.0.0", port=TopConfig().get_config().private_config.port)
+from config.private.free.config_loader import FreeConfig
+mcp = FastMCP("Free MCP Server", host="0.0.0.0", port=FreeConfig().get_config().private_config.port)
 
 
 @mcp.tool(
     name="free_collect_tool"
-    if TopConfig().get_config().public_config.language == LanguageEnum.ZH
+    if FreeConfig().get_config().public_config.language == LanguageEnum.ZH
     else
     "free_collect_tool",
     description='''
@@ -30,7 +30,7 @@ mcp = FastMCP("Perf_Svg MCP Server", host="0.0.0.0", port=TopConfig().get_config
         - free: 空闲的物理内存（单位MB）
         - available: 系统可分配给新应用程序的内存量（单位MB）
     '''
-    if TopConfig().get_config().public_config.language == LanguageEnum.ZH
+    if FreeConfig().get_config().public_config.language == LanguageEnum.ZH
     else
     '''
     Use the `free` command to quickly assess the overall memory status of a remote machine or the local machine.
@@ -48,13 +48,20 @@ def free_collect_tool(host: Union[str, None] = None) -> Dict[str, Any]:
     """使用free命令获取机器内存整体状态"""
     if host is None:
         try:
-            result = subprocess.run(['free', '-m'], capture_output=True, text=True)
+            command = ['free', '-m']
+            result = subprocess.run(command, capture_output=True, text=True)
             lines = result.stdout.split('\n')
             if len(lines) < 2:
-                raise ValueError("free 命令输出格式不正确，缺少内存信息行")
+                if FreeConfig().get_config().public_config.language == LanguageEnum.ZH:
+                    raise ValueError(f"{command} 命令输出格式不正确，缺少内存信息行")
+                else:
+                    raise ValueError(f"The output format of the {command} is incorrect, missing the memory information line.")
             parts = lines[1].split()
             if len(parts) < 7:
-                raise ValueError("free 命令输出字段不足，无法提取所需内存信息")
+                if FreeConfig().get_config().public_config.language == LanguageEnum.ZH:
+                    raise ValueError(f"{command} 命令输出字段不足，无法提取所需内存信息")
+                else:
+                    raise ValueError(f"The output fields of the {command} are insufficient, unable to extract the required memory information.")
             memory_info = {
                 'total': int(parts[1]),
                 'used': int(parts[2]),
@@ -63,11 +70,17 @@ def free_collect_tool(host: Union[str, None] = None) -> Dict[str, Any]:
             }
             return memory_info
         except subprocess.CalledProcessError as e:
-            raise RuntimeError(f"执行 free 命令失败: {e.stderr}") from e
+            if FreeConfig().get_config().public_config.language == LanguageEnum.ZH:
+                raise RuntimeError(f"执行 free 命令失败: {e.stderr}") from e
+            else:
+                raise RuntimeError(f"Failed to execute the free command: {e.stderr}") from e
         except Exception as e:
-            raise RuntimeError(f"获取内存信息时发生未知错误: {str(e)}") from e
+            if FreeConfig().get_config().public_config.language == LanguageEnum.ZH:
+                raise RuntimeError(f"获取内存信息时发生未知错误: {str(e)}") from e
+            else:
+                raise RuntimeError(f"An unknown error occurred while obtaining memory information: {str(e)}") from e
     else:
-        for host_config in TopConfig().get_config().public_config.remote_hosts:
+        for host_config in FreeConfig().get_config().public_config.remote_hosts:
             if host == host_config.name or host == host_config.host:
                 try:
                     # 建立SSH连接
@@ -79,22 +92,28 @@ def free_collect_tool(host: Union[str, None] = None) -> Dict[str, Any]:
                         username=host_config.username,
                         password=host_config.password
                     )
-                    cmd = "free -m"
-                    stdin, stdout, stderr = ssh.exec_command(cmd, timeout=20)
+                    command = "free -m"
+                    stdin, stdout, stderr = ssh.exec_command(command, timeout=10)
                     error = stderr.read().decode().strip()
                     output = stdout.read().decode().strip()
                     if error:
-                        raise ValueError(f"Command {cmd} error: {error}")
+                        raise ValueError(f"Command {command} error: {error}")
 
                     if not output:
                         raise ValueError("未能获取内存信息")
 
                     lines = output.strip().split('\n')
                     if len(lines) < 2:
-                        raise ValueError("free 命令输出格式不正确，缺少内存信息行")
+                        if FreeConfig().get_config().public_config.language == LanguageEnum.ZH:
+                            raise ValueError(f"{command} 命令输出格式不正确，缺少内存信息行")
+                        else:
+                            raise ValueError(f"The output format of the {command} is incorrect, missing the memory information line.")
                     parts = lines[1].split()
                     if len(parts) < 7:
-                        raise ValueError("free 命令输出字段不足，无法提取所需内存信息")
+                        if FreeConfig().get_config().public_config.language == LanguageEnum.ZH:
+                            raise ValueError(f"{command} 命令输出字段不足，无法提取所需内存信息")
+                        else:
+                            raise ValueError(f"The output fields of the {command} are insufficient, unable to extract the required memory information.")
                     memory_info = {
                         'total': int(parts[1]),
                         'used': int(parts[2]),
@@ -107,7 +126,7 @@ def free_collect_tool(host: Union[str, None] = None) -> Dict[str, Any]:
                 except paramiko.SSHException as e:
                     raise ValueError(f"SSH连接错误: {str(e)}")
                 except Exception as e:
-                    raise ValueError(f"获取远程内存信息失败: {str(e)}")
+                    raise ValueError(f"远程执行 {command} 失败: {str(e)}")
                 finally:
                     # 确保SSH连接关闭
                     if ssh is not None:
@@ -115,7 +134,7 @@ def free_collect_tool(host: Union[str, None] = None) -> Dict[str, Any]:
                             ssh.close()
                         except Exception:
                             pass
-        if TopConfig().get_config().public_config.language == LanguageEnum.ZH:
+        if FreeConfig().get_config().public_config.language == LanguageEnum.ZH:
             raise ValueError(f"未找到远程主机: {host}")
         else:
             raise ValueError(f"Remote host not found: {host}")

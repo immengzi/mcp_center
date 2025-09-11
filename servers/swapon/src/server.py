@@ -11,33 +11,33 @@ import tempfile
 from datetime import datetime
 from mcp.server import FastMCP
 from config.public.base_config_loader import LanguageEnum
-from config.private.top.config_loader import TopConfig
-mcp = FastMCP("Perf_Svg MCP Server", host="0.0.0.0", port=TopConfig().get_config().private_config.port)
+from config.private.swapon.config_loader import SwaponConfig
+mcp = FastMCP("Swapon MCP Server", host="0.0.0.0", port=SwaponConfig().get_config().private_config.port)
 
 
 @mcp.tool(
     name="swapon_collect_tool"
-    if TopConfig().get_config().public_config.language == LanguageEnum.ZH
+    if SwaponConfig().get_config().public_config.language == LanguageEnum.ZH
     else
     "swapon_collect_tool",
     description='''
     使用swapon命令查看当前swap设备状态
     1. 输入值如下：
         - host: 远程主机名称或IP地址，若不提供则表示获取本机的swap设备状态
-    2. 返回值为包含进程信息的字典列表，每个字典包含以下键
+    2. 返回值为包含swap设备信息的字典列表，每个字典包含以下键
         - name: swap空间对应的设备或文件路径
         - type: swap空间的类型
         - size: swap空间的总大小
         - used: 当前已使用的swap空间量
         - prio: swap空间的优先级
     '''
-    if TopConfig().get_config().public_config.language == LanguageEnum.ZH
+    if SwaponConfig().get_config().public_config.language == LanguageEnum.ZH
     else
     '''
     Use the `swapon` command to check the current status of swap devices.
     1. The input values are as follows:
         - host: The name or IP address of the remote host. If not provided, it indicates that the swap device status of the local machine will be retrieved.
-    2. The return value is a list of dictionaries containing process information, with each dictionary including the following keys:
+    2. The return value is a list of dictionaries containing swap device information, with each dictionary including the following keys:
         - name: The device or file path corresponding to the swap space.
         - type: The type of the swap space.
         - size: The total size of the swap space.
@@ -68,11 +68,17 @@ def swapon_collect_tool(host: Union[str, None] = None) -> List[Dict[str, Any]]:
                 })
             return swap_devices
         except subprocess.CalledProcessError as e:
-            raise RuntimeError(f"执行 {command} 命令失败: {e.stderr}") from e
+            if SwaponConfig().get_config().public_config.language == LanguageEnum.ZH:
+                raise RuntimeError(f"执行 {command} 命令失败: {e.stderr}")
+            else:
+                raise RuntimeError(f"Command {command} execution failed: {e.stderr}")
         except Exception as e:
-            raise RuntimeError(f"执行 {command} 命令时发生未知错误: {str(e)}") from e
+            if SarConfig().get_config().public_config.language == LanguageEnum.ZH:
+                raise RuntimeError(f"执行 {command} 命令时发生未知错误: {str(e)}") from e
+            else:
+                raise RuntimeError(f"Command {command} execution encountered an unknown error: {str(e)}") from e
     else:
-        for host_config in TopConfig().get_config().public_config.remote_hosts:
+        for host_config in SwaponConfig().get_config().public_config.remote_hosts:
             if host == host_config.name or host == host_config.host:
                 try:
                     # 建立SSH连接
@@ -90,10 +96,16 @@ def swapon_collect_tool(host: Union[str, None] = None) -> List[Dict[str, Any]]:
                     output = stdout.read().decode().strip()
 
                     if error:
-                        raise ValueError(f"Command {command} error: {error}")
+                        if VmstatConfig().get_config().public_config.language == LanguageEnum.ZH:
+                            raise ValueError(f"命令 {command} 错误：{error}")
+                        else:
+                            raise ValueError(f"Command {command} error: {error}")
 
                     if not output:
-                        raise ValueError("未能获取swap设备信息")
+                        if VmstatConfig().get_config().public_config.language == LanguageEnum.ZH:
+                            raise ValueError("未能获取swap设备信息")
+                        else:
+                            raise ValueError("Failed to retrieve swap device information")
 
                     lines = output.split('\n')
                     swap_devices = []
@@ -120,7 +132,7 @@ def swapon_collect_tool(host: Union[str, None] = None) -> List[Dict[str, Any]]:
                 except paramiko.SSHException as e:
                     raise ValueError(f"SSH连接错误: {str(e)}")
                 except Exception as e:
-                    raise ValueError(f"获取远程内存信息失败: {str(e)}")
+                    raise ValueError(f"远程执行 {command} 失败: {str(e)}")
                 finally:
                     # 确保SSH连接关闭
                     if ssh is not None:
@@ -128,7 +140,7 @@ def swapon_collect_tool(host: Union[str, None] = None) -> List[Dict[str, Any]]:
                             ssh.close()
                         except Exception:
                             pass
-        if TopConfig().get_config().public_config.language == LanguageEnum.ZH:
+        if SwaponConfig().get_config().public_config.language == LanguageEnum.ZH:
             raise ValueError(f"未找到远程主机: {host}")
         else:
             raise ValueError(f"Remote host not found: {host}")

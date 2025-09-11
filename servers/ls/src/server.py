@@ -11,13 +11,13 @@ import tempfile
 from datetime import datetime
 from mcp.server import FastMCP
 from config.public.base_config_loader import LanguageEnum
-from config.private.top.config_loader import TopConfig
-mcp = FastMCP("Perf_Svg MCP Server", host="0.0.0.0", port=TopConfig().get_config().private_config.port)
+from config.private.ls.config_loader import LsConfig
+mcp = FastMCP("Ls MCP Server", host="0.0.0.0", port=LsConfig().get_config().private_config.port)
 
 
 @mcp.tool(
     name="ls_collect_tool"
-    if TopConfig().get_config().public_config.language == LanguageEnum.ZH
+    if LsConfig().get_config().public_config.language == LanguageEnum.ZH
     else
     "ls_collect_tool",
     description='''
@@ -27,7 +27,7 @@ mcp = FastMCP("Perf_Svg MCP Server", host="0.0.0.0", port=TopConfig().get_config
         - file: 目标文件/目录
     2. 返回值为目标目录内容的列表
     '''
-    if TopConfig().get_config().public_config.language == LanguageEnum.ZH
+    if LsConfig().get_config().public_config.language == LanguageEnum.ZH
     else
     '''
     Use the `ls` command to list the contents of a directory
@@ -58,7 +58,7 @@ def ls_collect_tool(host: Union[str, None] = None, file: str = './') -> List[Dic
         except Exception as e:
             raise RuntimeError(f"执行 {command} 命令发生未知错误: {str(e)}") from e
     else:
-        for host_config in TopConfig().get_config().public_config.remote_hosts:
+        for host_config in LsConfig().get_config().public_config.remote_hosts:
             if host == host_config.name or host == host_config.host:
                 try:
                     # 建立SSH连接
@@ -87,7 +87,7 @@ def ls_collect_tool(host: Union[str, None] = None, file: str = './') -> List[Dic
                 except paramiko.SSHException as e:
                     raise ValueError(f"SSH连接错误: {str(e)}")
                 except Exception as e:
-                    raise ValueError(f"获取远程内存信息失败: {str(e)}")
+                    raise ValueError(f"远程执行 {command} 失败: {str(e)}")
                 finally:
                     # 确保SSH连接关闭
                     if ssh is not None:
@@ -95,7 +95,7 @@ def ls_collect_tool(host: Union[str, None] = None, file: str = './') -> List[Dic
                             ssh.close()
                         except Exception:
                             pass
-        if TopConfig().get_config().public_config.language == LanguageEnum.ZH:
+        if LsConfig().get_config().public_config.language == LanguageEnum.ZH:
             raise ValueError(f"未找到远程主机: {host}")
         else:
             raise ValueError(f"Remote host not found: {host}")

@@ -11,13 +11,13 @@ import tempfile
 from datetime import datetime
 from mcp.server import FastMCP
 from config.public.base_config_loader import LanguageEnum
-from config.private.top.config_loader import TopConfig
-mcp = FastMCP("Perf_Svg MCP Server", host="0.0.0.0", port=TopConfig().get_config().private_config.port)
+from config.private.mv.config_loader import MvConfig
+mcp = FastMCP("Mv MCP Server", host="0.0.0.0", port=MvConfig().get_config().private_config.port)
 
 
 @mcp.tool(
     name="mv_collect_tool"
-    if TopConfig().get_config().public_config.language == LanguageEnum.ZH
+    if MvConfig().get_config().public_config.language == LanguageEnum.ZH
     else
     "mv_collect_tool",
     description='''
@@ -28,7 +28,7 @@ mcp = FastMCP("Perf_Svg MCP Server", host="0.0.0.0", port=TopConfig().get_config
         - target: 目标文件或目录
     2. 返回值为布尔值，表示mv操作是否成功
     '''
-    if TopConfig().get_config().public_config.language == LanguageEnum.ZH
+    if MvConfig().get_config().public_config.language == LanguageEnum.ZH
     else
     '''
     Use the mv command to move or rename files/directories
@@ -62,7 +62,7 @@ def mv_collect_tool(host: Union[str, None] = None, source: str = None, target: s
         except Exception as e:
             raise RuntimeError(f"执行 {command} 命令发生未知错误: {str(e)}") from e
     else:
-        for host_config in TopConfig().get_config().public_config.remote_hosts:
+        for host_config in MvConfig().get_config().public_config.remote_hosts:
             if host == host_config.name or host == host_config.host:
                 try:
                     # 建立SSH连接
@@ -91,7 +91,7 @@ def mv_collect_tool(host: Union[str, None] = None, source: str = None, target: s
                 except paramiko.SSHException as e:
                     raise ValueError(f"SSH连接错误: {str(e)}")
                 except Exception as e:
-                    raise ValueError(f"获取远程内存信息失败: {str(e)}")
+                    raise ValueError(f"远程执行 {command} 失败: {str(e)}")
                 finally:
                     # 确保SSH连接关闭
                     if ssh is not None:
@@ -99,7 +99,7 @@ def mv_collect_tool(host: Union[str, None] = None, source: str = None, target: s
                             ssh.close()
                         except Exception:
                             pass
-        if TopConfig().get_config().public_config.language == LanguageEnum.ZH:
+        if MvConfig().get_config().public_config.language == LanguageEnum.ZH:
             raise ValueError(f"未找到远程主机: {host}")
         else:
             raise ValueError(f"Remote host not found: {host}")

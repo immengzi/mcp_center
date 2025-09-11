@@ -1,13 +1,12 @@
-# Specification Document for Process Information Collection MCP (Management Control Program)
+# Specification Document for Touch Command MCP (Management Control Program)
 
 ## 1. Service Introduction
-This service is an MCP (Management Control Program) for process information collection based on the `top` command. Its core function is to accurately collect process running data of target devices, providing basic data support for subsequent process analysis and resource monitoring.
+This service is an MCP (Management Control Program) based on the `touch` command for rapid file initialization and batch creation. Its core functions include quick file initialization and batch creation, as well as the ability to calibrate file timestamps.
 
 ## 2. Core Tool Information
-| Category | Details |
-| -------- | ------- |
-| Tool Name | top_collect_tool |
-| Tool Function | Using the `top` command to obtain information about the **top k processes with the highest memory usage** in the specified target (remote machine or local machine). (k is a configurable parameter, supporting setting specific values according to actual needs) |
+| Tool Name | Tool Function | Core Input Parameters | Key Return Content |
+| ---- | ---- | ---- | ---- |
+| `touch_create_files_tool` | Perform rapid file initialization and batch creation | - `host`: Remote hostname/IP (not required for local collection)<br>- `file`: Name of the file to be created | Boolean value indicating whether the touch operation was successful |
+| `touch_timestamp_files_tool` | Calibrate and simulate file timestamps | - `host`: Remote hostname/IP (not required for local query)<br>- `options`: Update access time/Update modification time(`-a` indicates updating only the access time, `-m` indicates updating only the modification time)<br>- `file`: File name | Boolean value indicating whether the touch operation was successful |
 
 ## 3. To-be-developed Requirements
-It is planned to develop a malicious process identification function based on the `top` command. By analyzing dimensions such as process memory usage characteristics, CPU usage, running duration, and process name legitimacy, it will assist in locating potential malicious processes and improve the security monitoring capability of device processes.
