@@ -1,0 +1,3 @@
+| Tool Name | Tool Function | Core Input Parameters | Key Return Content |
+| ---- | ---- | ---- | ---- |
+| `lscpu_info_tool` | Retrieve core static information such as **CPU architecture** from the target device (local/remote) | - `host`: Remote hostname/IP (not required for local collection) | CPU architecture information (including `architecture` (e.g., x86_64), `cpus_total` total number of CPUs, `model_name` CPU model name, `cpu_max_mhz` maximum CPU frequency (MHz, floating point), `vulnerabilities` dictionary of mitigation status for common security vulnerabilities) |

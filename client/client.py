@@ -129,6 +129,62 @@ async def main() -> None:
     cmd = result.content[0].text
     print(f"生成的命令是: {cmd}")
     result = await client.call_tool("cmd_executor_tool", {"command": cmd})
+
+    # cpu架构等静态信息收集
+    # result = await client.call_tool("lscpu_info_tool", {})
+    # 查询 NUMA 硬件拓扑与系统配置
+    # result = await client.call_tool("numa_topo_tool", {})
+    # 启动时绑定进程到指定 NUMA 节点
+    # result = await client.call_tool("numa_bind_proc_tool", {
+    #     "numa_node": 0,
+    #     "memory_node": 0,
+    #     "program_path": "/root/mcp_center/test/hello"
+    # })
+    # 修改已启动进程的 NUMA 绑定
+    # result = await client.call_tool("numa_rebind_proc_tool", {
+    #     "pid": 982, # firewalld
+    #     "from_node": 0,
+    #     "to_node": 0
+    # })
+    # 为 Docker 容器配置 NUMA 绑定
+    # result = await client.call_tool("numa_bind_docker_tool", {
+    #     "image": "nginx",
+    #     "cpuset_cpus": "0-3",
+    #     "cpuset_mems": "0",
+    #     "detach": True
+    # })
+    # 用 NUMA 绑定控制测试变量
+    # result = await client.call_tool("numa_perf_compare", {
+    #     'benchmark': "/root/mcp_center/stream"
+    # })
+    # 用 NUMA 绑定定位硬件问题
+    # result = await client.call_tool("numa_diagnose", {})
+    # 查看系统整体 NUMA 内存访问状态
+    # result = await client.call_tool("numastat_info_tool", {})
+    # 定位跨节点内存访问过高的进程
+    # result = await client.call_tool("numa_cross_node", {})
+    # 监控 Docker 容器的 NUMA 内存访问
+    # result = await client.call_tool("numa_container", {
+    #     "container_id": "258b82ea"
+    # })
+    # 快速定位系统 / 进程的 CPU 性能瓶颈    
+    # result = await client.call_tool("hotspot_trace_tool", {"pid": 995})
+    # result = await client.call_tool("hotspot_trace_tool", {})
+    # 定位 CPU 缓存失效导致的性能损耗
+    # result = await client.call_tool("cache_miss_audit_tool", {})
+    # 精准测量函数执行时间（含调用栈）
+    # result = await client.call_tool("func_timing_trace_tool", {"pid": 995})
+    # 排查不合理的系统调用（高频 / 耗时）
+    # result = await client.call_tool("strace_syscall", {"pid": 1322})
+    # 定位高频中断导致的 CPU 占用
+    # result = await client.call_tool("perf_interrupt_health_check", {})    
+    # 火焰图生成：可视化展示性能瓶颈
+    # result = await client.call_tool("flame_graph", {
+    #     'perf_data_path': "/root/mcp_center/perf.data",
+    #     'output_path': "/root/mcp_center/cpu_flamegraph.svg",
+    #     'flamegraph_path': "/root/mcp_center/FlameGraph"
+    # })
+
     print(result)
     await client.stop()
 

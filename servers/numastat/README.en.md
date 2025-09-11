@@ -1,0 +1,3 @@
+| Tool Name | Tool Function | Core Input Parameters | Key Return Content |
+| ---- | ---- | ---- | ---- |
+| `numastat_info_tool` | Uses **numastat** to obtain **NUMA node access statistics** for the target device (local/remote) | - `host`: Remote hostname/IP (not required for local collection) | NUMA statistics dictionary (including `numa_hit` hit count, `numa_miss` miss count, `numa_foreign` cross-node access count, `interleave_hit` interleave hit count, `local_node` local node access count, `other_node` other node access count) |

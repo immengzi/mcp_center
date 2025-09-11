@@ -1,0 +1,3 @@
+| Tool Name | Tool Function | Core Input Parameters | Key Return Content |
+| ---- | ---- | ---- | ---- |
+| `hotspot_trace_tool` | Utilizes **perf record -g** to collect the function call stack duration of a **specified process** within 30 seconds (can be done locally or remotely) | - `pid`: Target process PID (required)<br>- `host`: Remote hostname/IP (not required for local collection) | Function performance analysis results (including `top_functions` function list, each function contains: `function` function name, `self_percent` self time percentage, `total_percent` total time percentage (including sub-functions), `call_stack` call stack path) |

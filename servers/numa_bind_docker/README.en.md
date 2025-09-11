@@ -1,0 +1,3 @@
+| Tool Name | Tool Function | Core Input Parameters | Key Return Content |
+| ---- | ---- | ---- | ---- |
+| `numa_bind_docker_tool` | Configures NUMA binding for Docker containers on the target device (local/remote) | - `host`: Remote hostname/IP (optional for local collection), `image`: Image name, `cpuset_cpus`: Range of CPU cores allowed, `cpuset_mems`: Memory nodes allowed, `detach`: Whether to run the container in the background (default False) | `status`: Operation status (success / error), `message`: Operation result information, `output`: Raw output of the command (if any) |
