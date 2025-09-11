@@ -6,8 +6,8 @@ mcp_center is used to build the oe intelligent assistant, and its directory stru
 ├── client - Test client
 ├── config - Public and private configuration files
 ├── mcp_config - Configuration files for mcp registration to the framework
-├── README.en.md - English version description
-├── README.md - Chinese version description
+├── README.en.md - English version Introduction
+├── README.md - Chinese version Introduction
 ├── requiremenets.txt - Overall dependencies
 ├── run.sh - Script to start the mcp service
 ├── servers - Directory containing mcp server source code
@@ -71,3 +71,94 @@ mcp_center is used to build the oe intelligent assistant, and its directory stru
 | Directory| mcp_center/servers/servers/shell_generator |
 | Port Used| 12101                       |
 | Introduction | Generate & execute shell commands |
+
+| Category | Details                     |
+|----------|-----------------------------|
+| Name     | servers/free                |
+| Directory| mcp_center/servers/free     |
+| Port Used| 13100                       |
+| Introduction | Obtain the overall status of system memory |
+
+| Category | Details                     |
+|----------|-----------------------------|
+| Name     | servers/vmstat              |
+| Directory| mcp_center/servers/vmstat   |
+| Port Used| 13101                       |
+| Introduction | Collect information on system resource interaction bottlenecks |
+
+| Category | Details                     |
+|----------|-----------------------------|
+| Name     | servers/sar                 |
+| Directory| mcp_center/servers/sar      |
+| Port Used| 13102                       |
+| Introduction | System resource monitoring and fault diagnosis |
+
+| Category | Details                     |
+|----------|-----------------------------|
+| Name     | servers/sync                |
+| Directory| mcp_center/servers/sync     |
+| Port Used| 13103                       |
+| Introduction | Write memory buffer data to disk |
+
+| Category | Details                     |
+|----------|-----------------------------|
+| Name     | servers/swapon              |
+| Directory| mcp_center/servers/swapon   |
+| Port Used| 13104                       |
+| Introduction | Check the status of swap devices |
+
+| Category | Details                     |
+|----------|-----------------------------|
+| Name     | servers/swapoff             |
+| Directory| mcp_center/servers/swapoff  |
+| Port Used| 13105                       |
+| Introduction | Disable swap devices    |
+
+| Category | Details                     |
+|----------|-----------------------------|
+| Name     | servers/fallocate           |
+| Directory| mcp_center/servers/fallocate|
+| Port Used| 13106                       |
+| Introduction | Temporarily create and enable swap files |
+
+| Category | Details                     |
+|----------|-----------------------------|
+| Name     | servers/find                |
+| Directory| mcp_center/servers/find     |
+| Port Used| 13107                       |
+| Introduction | File Search             |
+
+| Category | Details                     |
+|----------|-----------------------------|
+| Name     | servers/touch               |
+| Directory| mcp_center/servers/touch    |
+| Port Used| 13108                       |
+| Introduction | File Creation and Time Calibration |
+
+| Category | Details                     |
+|----------|-----------------------------|
+| Name     | servers/mkdir               |
+| Directory| mcp_center/servers/mkdir    |
+| Port Used| 13109                       |
+| Introduction | Directory Creation      |
+
+| Category | Details                     |
+|----------|-----------------------------|
+| Name     | servers/rm                  |
+| Directory| mcp_center/servers/rm       |
+| Port Used| 13110                       |
+| Introduction | File Deletion           |
+
+| Category | Details                     |
+|----------|-----------------------------|
+| Name     | servers/mv                  |
+| Directory| mcp_center/servers/mv       |
+| Port Used| 13111                       |
+| Introduction | File move or rename     |
+
+| Category | Details                     |
+|----------|-----------------------------|
+| Name     | servers/ls                  |
+| Directory| mcp_center/servers/ls       |
+| Port Used| 13112                       |
+| Introduction | View directory contents |
