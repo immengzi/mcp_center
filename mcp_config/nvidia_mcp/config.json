@@ -1,0 +1,9 @@
+{
+    "name": "nvidia命令生成&执行mcp",
+    "overview": "nvidia命令生成&执行mcp",
+    "description": "nvidia命令生成&执行mcp",
+    "mcpType": "sse",
+    "config": {
+        "url": "http://127.0.0.1:12114/sse"
+    }
+}

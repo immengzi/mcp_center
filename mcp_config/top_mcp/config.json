@@ -1,0 +1,9 @@
+{
+    "name": "top命令生成&执行mcp",
+    "overview": "top命令生成&执行mcp",
+    "description": "top命令生成&执行mcp",
+    "mcpType": "sse",
+    "config": {
+        "url": "http://127.0.0.1:12110/sse"
+    }
+}
