@@ -1,0 +1,3 @@
+| Tool Name | Tool Function | Core Input Parameters | Key Return Content |
+| ---- | ---- | ---- | ---- |
+| `strace_syscall` | Utilizes **strace -c** to collect system call statistics of a **specified process** within a specified time frame (can be local or remote) | - `pid`: Target process PID (required)<br>- `host`: Remote hostname/IP (not required for local collection)<br>- `timeout`: Collection timeout (default 10 seconds) | System call statistics (including `syscall` system call name, `total_time` total time, `call_count` number of calls, `avg_time` average time, `error_count` number of errors) |

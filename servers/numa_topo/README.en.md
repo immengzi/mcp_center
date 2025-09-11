@@ -1,0 +1,3 @@
+| Tool Name | Tool Function | Core Input Parameters | Key Return Content |
+| ---- | ---- | ---- | ---- |
+| `numa_topo_tool` | Retrieve the NUMA hardware topology and system configuration of the target device (local/remote) | - `host`: Remote hostname/IP (not required for local collection) | `nodes_total` Total number of nodes, `nodes` List of node information, each node includes `node_id` Node ID, `cpus` List of CPUs on this node, `size_mb` Memory size (MB), `free_mb` Free memory (MB) |

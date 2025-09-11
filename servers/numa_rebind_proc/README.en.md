@@ -1,0 +1,3 @@
+| Tool Name | Tool Function | Core Input Parameters | Key Return Content |
+| ---- | ---- | ---- | ---- |
+| `numa_rebind_proc_tool` | Modify the NUMA memory binding of running processes on the target device (local/remote) | - `host`: Remote hostname/IP (not required for local collection), `pid`: Process ID, `from_node`: Current NUMA node number where the memory resides, `to_node`: Target NUMA node number | `status`: Operation status (success / error), `message`: Operation result information, `output`: Original output of the command (if any) |
