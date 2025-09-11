@@ -120,46 +120,11 @@ class MCPClient:
 
 async def main() -> None:
     """测试MCP Client"""
-    url = "http://0.0.0.0:13112/sse"
+    url = "http://0.0.0.0:12101/sse"
     headers = {}
     client = MCPClient(url, headers)
     await client.init()
-    # result = await client.call_tool("top_collect_tool", {"k": 5})
-    # result = await client.call_tool("free_collect_tool", {})
-    # result = await client.call_tool("vmstat_collect_tool", {})
-    # result = await client.call_tool("vmstat_slabinfo_collect_tool", {})
-    # result = await client.call_tool("sar_collect_tool", {"device": '-d', "interval": 1, "count": 3})
-    # result = await client.call_tool("sar_historicalinfo_collect_tool", {"device": '-r', "file": '/var/log/sa/sa02', "starttime": '10:00:00', "endtime": '10:30:00' })
-    # result = await client.call_tool("sync_refresh_data_tool", {})
-    # result = await client.call_tool("swapon_collect_tool", {})
-    # result = await client.call_tool("swapoff_disabling_swap_tool", {"name": '/swapfile'})
-    # result = await client.call_tool("fallocate_create_file_tool", {"name": '/swapfile', "size": '2G'})
-    # result = await client.call_tool("touch_create_files_tool", {"file": '4.txt'})
-    # result = await client.call_tool("find_with_name_tool", {"path": './', "name": '*.py'})
-    # result = await client.call_tool("find_with_date_tool", {"path": './', "time": '-2'})
-    # result = await client.call_tool("find_with_size_tool", {"path": './', "size": '-1M'})
-    # result = await client.call_tool("mkdir_collect_tool", {"dir": 'user'})
-    # result = await client.call_tool("vim_collect_tool", {"name": "4.txt", "op": "'0put ='new line at top'"})
-    # result = await client.call_tool("rm_collect_tool", {"path": "/home/user/trash"})
-    # result = await client.call_tool("mv_collect_tool", {"source": '4.txt', "target": '5.txt'})
-    # result = await client.call_tool("ls_collect_tool", {})
-
-    # result = await client.call_tool("free_collect_tool", {"host": '9.82.233.117'})
-    # result = await client.call_tool("vmstat_collect_tool", {"host": '9.82.233.117'})
-    # result = await client.call_tool("vmstat_slabinfo_collect_tool", {"host": '9.82.233.117'})
-    # result = await client.call_tool("sar_collect_tool", {"host": '9.82.233.117', "device": '-d', "interval": 1, "count": 3})
-    # result = await client.call_tool("sar_historicalinfo_collect_tool", {"host": '9.82.233.117', "device": '-r', "file": '/var/log/sa/sa09', "starttime": '10:00:00', "endtime": '10:30:00' })
-    # result = await client.call_tool("sync_refresh_data_tool", {"host": '9.82.233.117'})
-    # result = await client.call_tool("swapon_collect_tool", {"host": '9.82.233.117'})
-    # result = await client.call_tool("swapoff_disabling_swap_tool", {"host": '9.82.233.117', "name": '/swapfile'})
-    # result = await client.call_tool("fallocate_create_file_tool", {"host": '9.82.233.117', "name": '/swapfile', "size": '2G'})
-    # result = await client.call_tool("find_with_name_tool", {"host": '9.82.233.117', "path": './', "name": '*.py'})
-    # result = await client.call_tool("touch_create_files_tool", {"host": '9.82.233.117', "file": '4.txt'})
-    # result = await client.call_tool("mkdir_collect_tool", {"host": '9.82.233.117', "dir": 'user'})
-    # result = await client.call_tool("vim_collect_tool", {"name": "4.txt", "op": "'0put ='new line at top'"})
-    # result = await client.call_tool("rm_collect_tool", {"path": "/home/user/trash"})
-    # result = await client.call_tool("mv_collect_tool", {"source": '4.txt', "target": '5.txt'})
-    # result = await client.call_tool("ls_collect_tool", {})
+    result = await client.call_tool("top_collect_tool", {"k": 5})
     print(result)
     await client.stop()
 
