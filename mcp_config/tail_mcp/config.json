@@ -1,0 +1,9 @@
+{
+    "name": "文件创建工具",
+    "overview": "文件创建工具",
+    "description": "文件创建工具",
+    "mcpType": "sse",
+    "config": {
+        "url": "http://127.0.0.1:13114/sse"
+    }
+}
