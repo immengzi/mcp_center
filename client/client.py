@@ -120,7 +120,7 @@ class MCPClient:
 
 async def main() -> None:
     """测试MCP Client"""
-    url = "http://0.0.0.0:12101/sse"
+    url = "http://0.0.0.0:13102/sse"
     headers = {}
     client = MCPClient(url, headers)
     await client.init()
@@ -128,7 +128,10 @@ async def main() -> None:
     # result = await client.call_tool("free_collect_tool", {})
     # result = await client.call_tool("vmstat_collect_tool", {})
     # result = await client.call_tool("vmstat_slabinfo_collect_tool", {})
-    # result = await client.call_tool("sar_collect_tool", {"device": '-d', "interval": 1, "count": 3})
+    # result = await client.call_tool("sar_cpu_collect_tool", {"interval": 1, "count": 3})
+    result = await client.call_tool("sar_disk_collect_tool", {"interval": 1, "count": 3})
+    # result = await client.call_tool("sar_network_collect_tool", {"interval": 1, "count": 3})
+    # result = await client.call_tool("sar_network_historicalinfo_collect_tool", {"file": '/var/log/sa/sa02', "starttime": '10:00:00', "endtime": '10:30:00'})
     # result = await client.call_tool("sar_historicalinfo_collect_tool", {"device": '-r', "file": '/var/log/sa/sa02', "starttime": '10:00:00', "endtime": '10:30:00' })
     # result = await client.call_tool("sync_refresh_data_tool", {})
     # result = await client.call_tool("swapon_collect_tool", {})
@@ -143,11 +146,14 @@ async def main() -> None:
     # result = await client.call_tool("rm_collect_tool", {"path": "/home/user/trash"})
     # result = await client.call_tool("mv_collect_tool", {"source": '4.txt', "target": '5.txt'})
     # result = await client.call_tool("ls_collect_tool", {})
+    # result = await client.call_tool("head_file_view_tool", {"file": '/home/donglihao/mcp_center/run.sh'})
+    # result = await client.call_tool("tail_file_view_tool", {"file": '/home/donglihao/mcp_center/run.sh'})
+    # result = await client.call_tool("cat_file_view_tool", {"file": '/home/donglihao/mcp_center/run.sh'})
 
     # result = await client.call_tool("free_collect_tool", {"host": '9.82.233.117'})
     # result = await client.call_tool("vmstat_collect_tool", {"host": '9.82.233.117'})
     # result = await client.call_tool("vmstat_slabinfo_collect_tool", {"host": '9.82.233.117'})
-    # result = await client.call_tool("sar_collect_tool", {"host": '9.82.233.117', "device": '-d', "interval": 1, "count": 3})
+    # result = await client.call_tool("sar_cpu_collect_tool", {"host": '9.82.233.117', "interval": 1, "count": 3})
     # result = await client.call_tool("sar_historicalinfo_collect_tool", {"host": '9.82.233.117', "device": '-r', "file": '/var/log/sa/sa09', "starttime": '10:00:00', "endtime": '10:30:00' })
     # result = await client.call_tool("sync_refresh_data_tool", {"host": '9.82.233.117'})
     # result = await client.call_tool("swapon_collect_tool", {"host": '9.82.233.117'})
@@ -160,6 +166,7 @@ async def main() -> None:
     # result = await client.call_tool("rm_collect_tool", {"path": "/home/user/trash"})
     # result = await client.call_tool("mv_collect_tool", {"source": '4.txt', "target": '5.txt'})
     # result = await client.call_tool("ls_collect_tool", {})
+    # result = await client.call_tool("head_file_view_tool", {"host": '9.82.233.117', "file": '/home/origin/mcp_center/run.sh'})
     print(result)
     await client.stop()
 

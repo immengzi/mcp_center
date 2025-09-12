@@ -69,16 +69,11 @@ def free_collect_tool(host: Union[str, None] = None) -> Dict[str, Any]:
                 'available': int(parts[6])
             }
             return memory_info
-        except subprocess.CalledProcessError as e:
-            if FreeConfig().get_config().public_config.language == LanguageEnum.ZH:
-                raise RuntimeError(f"执行 free 命令失败: {e.stderr}") from e
-            else:
-                raise RuntimeError(f"Failed to execute the free command: {e.stderr}") from e
         except Exception as e:
             if FreeConfig().get_config().public_config.language == LanguageEnum.ZH:
-                raise RuntimeError(f"获取内存信息时发生未知错误: {str(e)}") from e
+                raise RuntimeError(f"获取 {command} 输出信息时发生未知错误: {str(e)}") from e
             else:
-                raise RuntimeError(f"An unknown error occurred while obtaining memory information: {str(e)}") from e
+                raise RuntimeError(f"An unknown error occurred while retrieving the output information for {command} : {str(e)}") from e
     else:
         for host_config in FreeConfig().get_config().public_config.remote_hosts:
             if host == host_config.name or host == host_config.host:
