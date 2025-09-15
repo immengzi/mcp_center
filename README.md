@@ -73,91 +73,112 @@ mcp_center 用于构建 oe 智能助手，其目录结构如下：
 
 | 类别   | 详情                     |
 |--------|--------------------------|
-| 名称   | servers/free                      |
-| 目录   | mcp_center/servers/free   |
-| 占用端口 | 13100                    |
-| 简介   | 获取系统内存整体状态   |
+| 名称   | servers/                      |
+| 目录   | mcp_center/servers/servers/lscpu  |
+| 占用端口 | 12202                    |
+| 简介   | cpu架构等静态信息收集   |
 
 | 类别   | 详情                     |
 |--------|--------------------------|
-| 名称   | servers/vmstat                     |
-| 目录   | mcp_center/servers/vmstat   |
-| 占用端口 | 13101                    |
-| 简介   | 系统资源交互瓶颈信息采集   |
+| 名称   | servers/numa_topo                     |
+| 目录   | mcp_center/servers/servers/numa_topo  |
+| 占用端口 | 12203                    |
+| 简介   | 查询 NUMA 硬件拓扑与系统配置   |
 
 | 类别   | 详情                     |
 |--------|--------------------------|
-| 名称   | servers/sar                      |
-| 目录   | mcp_center/servers/sar   |
-| 占用端口 | 13102                    |
-| 简介   | ​​系统资源监控与故障诊断   |
+| 名称   | servers/numa_bind_proc                     |
+| 目录   | mcp_center/servers/servers/numa_bind_proc  |
+| 占用端口 | 12204                    |
+| 简介   | 启动时绑定进程到指定 NUMA 节点   |
 
 | 类别   | 详情                     |
 |--------|--------------------------|
-| 名称   | servers/sync                     |
-| 目录   | mcp_center/servers/sync   |
-| 占用端口 | 13103                    |
-| 简介   | 内存缓冲区数据写入磁盘   |
+| 名称   | servers/numa_rebind_proc                     |
+| 目录   | mcp_center/servers/servers/numa_rebind_proc  |
+| 占用端口 | 12205                    |
+| 简介   | 修改已启动进程的 NUMA 绑定   |
 
 | 类别   | 详情                     |
 |--------|--------------------------|
-| 名称   | servers/swapon                      |
-| 目录   | mcp_center/servers/swapon   |
-| 占用端口 | 13104                    |
-| 简介   | 查看swap设备状态   |
+| 名称   | servers/numa_bind_docker                     |
+| 目录   | mcp_center/servers/servers/numa_bind_docker  |
+| 占用端口 | 12206                    |
+| 简介   | 为 Docker 容器配置 NUMA 绑定   |
 
 | 类别   | 详情                     |
 |--------|--------------------------|
-| 名称   | servers/swapoff                     |
-| 目录   | mcp_center/servers/swapoff   |
-| 占用端口 | 13105                    |
-| 简介   | swap设备停用   |
+| 名称   | servers/numa_perf_compare                     |
+| 目录   | mcp_center/servers/servers/numa_perf_compare  |
+| 占用端口 | 12208                    |
+| 简介   | 用 NUMA 绑定控制测试变量   |
 
 | 类别   | 详情                     |
 |--------|--------------------------|
-| 名称   | servers/fallocate                      |
-| 目录   | mcp_center/servers/fallocate   |
-| 占用端口 | 13106                    |
-| 简介   | 临时创建并启用swap文件   |
+| 名称   | servers/numa_diagnose                     |
+| 目录   | mcp_center/servers/servers/numa_diagnose  |
+| 占用端口 | 12209                     |
+| 简介   | 用 NUMA 绑定定位硬件问题   |
 
 | 类别   | 详情                     |
 |--------|--------------------------|
-| 名称   | servers/find                     |
-| 目录   | mcp_center/servers/find   |
-| 占用端口 | 13107                    |
-| 简介   | 文件查找   |
+| 名称   | servers/numastat                     |
+| 目录   | mcp_center/servers/servers/numastat  |
+| 占用端口 | 12210                    |
+| 简介   | 查看系统整体 NUMA 内存访问状态   |
 
 | 类别   | 详情                     |
 |--------|--------------------------|
-| 名称   | servers/touch                      |
-| 目录   | mcp_center/servers/touch   |
-| 占用端口 | 13108                    |
-| 简介   | 文件创建与时间校准   |
+| 名称   | servers/numa_cross_node                     |
+| 目录   | mcp_center/servers/servers/numa_cross_node  |
+| 占用端口 | 12211                    |
+| 简介   | 定位跨节点内存访问过高的进程   |
 
 | 类别   | 详情                     |
 |--------|--------------------------|
-| 名称   | servers/mkdir                     |
-| 目录   | mcp_center/servers/mkdir   |
-| 占用端口 | 13109                    |
-| 简介   | 文件夹创建   |
+| 名称   | servers/numa_container                     |
+| 目录   | mcp_center/servers/servers/numa_container  |
+| 占用端口 | 12214                    |
+| 简介   | 监控 Docker 容器的 NUMA 内存访问   |
 
 | 类别   | 详情                     |
 |--------|--------------------------|
-| 名称   | servers/rm                      |
-| 目录   | mcp_center/servers/rm   |
-| 占用端口 | 13110                    |
-| 简介   | 文件删除   |
+| 名称   | servers/hotspot_trace                     |
+| 目录   | mcp_center/servers/servers/hotspot_trace  |
+| 占用端口 | 12216                    |
+| 简介   | 快速定位系统 / 进程的 CPU 性能瓶颈   |
 
 | 类别   | 详情                     |
 |--------|--------------------------|
-| 名称   | servers/mv                     |
-| 目录   | mcp_center/servers/mv   |
-| 占用端口 | 13111                    |
-| 简介   | 文件移动或重命名   |
+| 名称   | servers/cache_miss_audit                     |
+| 目录   | mcp_center/servers/servers/cache_miss_audit  |
+| 占用端口 | 12217                    |
+| 简介   | 定位 CPU 缓存失效导致的性能损耗   |
 
 | 类别   | 详情                     |
 |--------|--------------------------|
-| 名称   | servers/ls                      |
-| 目录   | mcp_center/servers/ls   |
-| 占用端口 | 13112                    |
-| 简介   | 查看目录内容   |
+| 名称   | servers/func_timing_trace                     |
+| 目录   | mcp_center/servers/servers/func_timing_trace  |
+| 占用端口 | 12218                    |
+| 简介   | 精准测量函数执行时间（含调用栈）   |
+
+| 类别   | 详情                     |
+|--------|--------------------------|
+| 名称   | servers/strace_syscall                     |
+| 目录   | mcp_center/servers/servers/strace_syscall  |
+| 占用端口 | 12219                    |
+| 简介   | 排查不合理的系统调用（高频 / 耗时）  |
+
+| 类别   | 详情                     |
+|--------|--------------------------|
+| 名称   | servers/perf_interrupt                     |
+| 目录   | mcp_center/servers/servers/perf_interrupt  |
+| 占用端口 | 12220                    |
+| 简介   | 定位高频中断导致的 CPU 占用   |
+
+| 类别   | 详情                     |
+|--------|--------------------------|
+| 名称   | servers/flame_graph                     |
+| 目录   | mcp_center/servers/servers/flame_graph  |
+| 占用端口 | 12222                    |
+| 简介   | 火焰图生成：可视化展示性能瓶颈   |
