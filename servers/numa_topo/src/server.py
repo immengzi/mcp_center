@@ -98,18 +98,36 @@ def numa_topo_tool(host: Union[str, None] = None) -> Dict[str, Any]:
             result = subprocess.run(['numactl', '-H'], capture_output=True, text=True, check=True)
             output = result.stdout
         else:
+            config = NumaTopoConfig().get_config()
+            target_host = None
+            for host_config in config.public_config.remote_hosts:
+                if host.strip() == host_config.name or host.strip() == host_config.host:
+                    target_host = host_config
+                    break
+
+            if not target_host:
+                if config.public_config.language == LanguageEnum.ZH:
+                    raise ValueError(f"未找到远程主机: {host}")
+                else:
+                    raise ValueError(f"Remote host not found: {host}")
+
             client = paramiko.SSHClient()
             client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-            
-            config = NumaTopoConfig().get_config()
-            username = config.private_config.ssh_username
-            key_file = config.private_config.ssh_key_path
-            port = config.private_config.ssh_port or 22
-
-            client.connect(host, port=port, username=username, key_filename=key_file, timeout=10)
+            client.connect(
+                hostname=target_host.host,
+                port=target_host.port,
+                username=target_host.username,
+                password=getattr(target_host, "password", None),
+                key_filename=getattr(target_host, "ssh_key_path", None),
+                timeout=10
+            )
             stdin, stdout, stderr = client.exec_command('numactl -H')
             output = stdout.read().decode('utf-8')
+            err = stderr.read().decode('utf-8').strip()
             client.close()
+
+            if err:
+                raise RuntimeError(err)
 
         return parse_numactl_output(output)
 

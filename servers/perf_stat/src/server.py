@@ -4,21 +4,19 @@ import tempfile
 import re
 import os
 import paramiko
-
 from mcp.server import FastMCP
 from config.public.base_config_loader import LanguageEnum
 from config.private.perf_stat.config_loader import PerfStatConfig
 
-cfg = PerfStatConfig().get_config()
 mcp = FastMCP(
     "Perf-Stat Tool MCP Server",
     host="0.0.0.0",
-    port=cfg.private_config.port
+    port=PerfStatConfig().get_config().private_config.port
 )
 
 @mcp.tool(
     name="perf_stat_tool"
-    if cfg.public_config.language == LanguageEnum.ZH
+    if PerfStatConfig().get_config().public_config.language == LanguageEnum.ZH
     else "perf_stat_tool",
     description="""
     通过 `perf stat -a -e cache-misses,cycles,instructions sleep 10` 采集整机的微架构指标。
@@ -29,11 +27,11 @@ mcp = FastMCP(
             "cache_misses": int,
             "cycles"      : int,
             "instructions": int,
-            "ipc"         : float,        # instructions / cycles
-            "seconds"     : float         # sleep 时长
+            "ipc"         : float,
+            "seconds"     : float
         }
     """
-    if cfg.public_config.language == LanguageEnum.ZH
+    if PerfStatConfig().get_config().public_config.language == LanguageEnum.ZH
     else """
     Collect whole-system micro-arch metrics via
     `perf stat -a -e cache-misses,cycles,instructions sleep 10`.
@@ -54,8 +52,8 @@ def perf_stat_tool(host: Optional[str] = None) -> Dict[str, Any]:
     cmd = ["perf", "stat", "-a", "-e", "cache-misses,cycles,instructions", "sleep", "10"]
 
     if host is None:
+        # 本地执行
         with tempfile.TemporaryDirectory() as tmp:
-            perf_data = os.path.join(tmp, "perf.data")
             completed = subprocess.run(
                 cmd,
                 stderr=subprocess.PIPE,
@@ -65,25 +63,44 @@ def perf_stat_tool(host: Optional[str] = None) -> Dict[str, Any]:
             )
             return _parse_stat(completed.stderr)
 
+    # 远程执行
+    config = PerfStatConfig().get_config()
+    target_host = None
+    for h in config.public_config.remote_hosts:
+        if host.strip() == h.name or host.strip() == h.host:
+            target_host = h
+            break
+    if not target_host:
+        if config.public_config.language == LanguageEnum.ZH:
+            raise ValueError(f"未找到远程主机: {host}")
+        else:
+            raise ValueError(f"Remote host not found: {host}")
+
     client = paramiko.SSHClient()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     client.connect(
-        hostname=host,
-        port=cfg.private_config.ssh_port or 22,
-        username=cfg.private_config.ssh_username,
-        key_filename=cfg.private_config.ssh_key_path,
+        hostname=target_host.host,
+        port=getattr(target_host, "port", 22),
+        username=getattr(target_host, "username", None),
+        password=getattr(target_host, "password", None),
+        key_filename=getattr(target_host, "ssh_key_path", None),
         timeout=10
     )
+
     try:
-        stdin, stdout, stderr = client.exec_command(" ".join(cmd))
+        perf_cmd_str = " ".join(f"'{c}'" if " " in c else c for c in cmd)
+        stdin, stdout, stderr = client.exec_command(perf_cmd_str)
         stdin.close()
         exit_code = stdout.channel.recv_exit_status()
-        if exit_code != 0:
+        stat_output = stderr.read().decode("utf-8")
+
+        if exit_code != 0 and not stat_output:
             raise RuntimeError(f"Remote perf stat failed, exit={exit_code}")
-        stat_output = stderr.read().decode()
+
         return _parse_stat(stat_output)
     finally:
         client.close()
+
 
 def _parse_stat(raw: str) -> Dict[str, Any]:
     """
@@ -110,6 +127,7 @@ def _parse_stat(raw: str) -> Dict[str, Any]:
         "ipc": ipc,
         "seconds": seconds
     }
+
 
 if __name__ == "__main__":
     mcp.run(transport="sse")

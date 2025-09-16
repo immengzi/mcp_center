@@ -3,21 +3,21 @@ import subprocess
 import tempfile
 import re
 import os
+import shlex
 import paramiko
 from mcp.server import FastMCP
 from config.public.base_config_loader import LanguageEnum
 from config.private.perf_stat.config_loader import PerfStatConfig
 
-cfg = PerfStatConfig().get_config()
 mcp = FastMCP(
     "Perf-Top Tool MCP Server",
     host="0.0.0.0",
-    port=cfg.private_config.port
+    port=PerfStatConfig().get_config().private_config.port
 )
 
 @mcp.tool(
     name="perf_top_tool"
-    if cfg.public_config.language == LanguageEnum.ZH
+    if PerfStatConfig().get_config().public_config.language == LanguageEnum.ZH
     else "perf_top_tool",
     description="""
     通过 `perf record -g` 采集指定进程的函数调用栈耗时。
@@ -34,7 +34,7 @@ mcp = FastMCP(
             }]
         }
     """
-    if cfg.public_config.language == LanguageEnum.ZH
+    if PerfStatConfig().get_config().public_config.language == LanguageEnum.ZH
     else """
     Collect function call stack and CPU time via `perf record -g`.
     Args:
@@ -57,72 +57,100 @@ def perf_top_tool(pid: int, host: Optional[str] = None) -> Dict[str, Any]:
         "perf", "record", "-g", "--call-graph", "dwarf",
         "-F", "997", "-p", str(pid), "--", "sleep", "30"
     ]
+    report_cmd = ["perf", "report", "--no-children", "--stdio"]
 
-    if host is None:
-        with tempfile.TemporaryDirectory() as tmp:
-            perf_data = os.path.join(tmp, "perf.data")
-            subprocess.run(
-                record_cmd,
-                stderr=subprocess.DEVNULL,
-                stdout=subprocess.DEVNULL,
-                check=True
-            )
-            report_output = subprocess.run(
-                ["perf", "report", "--no-children", "--stdio"],
-                capture_output=True,
-                text=True,
-                check=True
-            ).stdout
-            return _parse_report(report_output)
-
-    client = paramiko.SSHClient()
-    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    client.connect(
-        hostname=host,
-        port=cfg.private_config.ssh_port or 22,
-        username=cfg.private_config.ssh_username,
-        key_filename=cfg.private_config.ssh_key_path,
-        timeout=10
-    )
-    try:
-        stdin, stdout, stderr = client.exec_command(" ".join(record_cmd))
-        stdin.close()
-        exit_code = stdout.channel.recv_exit_status()
-        if exit_code != 0:
-            raise RuntimeError(f"Remote perf record failed, exit={exit_code}")
-
-        stdin, stdout, stderr = client.exec_command(
-            "perf report --no-children --stdio"
+    def parse_report(raw: str) -> Dict[str, Any]:
+        line_pattern = re.compile(
+            r"^\s*(\d+\.\d+)%\s+\S+\s+\S+\s+\[\.?\]?\s+(\S+)(?:\+0x[0-9a-f]+)?",
+            re.MULTILINE
         )
-        stdin.close()
-        exit_code = stdout.channel.recv_exit_status()
-        if exit_code != 0:
-            raise RuntimeError(f"Remote perf report failed, exit={exit_code}")
+        functions = []
+        for percent, symbol in line_pattern.findall(raw):
+            if len(functions) >= 10:
+                break
+            functions.append({
+                "function": symbol,
+                "self_percent": float(percent),
+                "total_percent": float(percent),
+                "call_stack": [symbol]
+            })
+        return {"top_functions": functions}
 
-        report_output = stdout.read().decode()
-        return _parse_report(report_output)
-    finally:
-        client.close()
+    try:
+        if host is None:
+            with tempfile.TemporaryDirectory() as tmp:
+                perf_data_path = os.path.join(tmp, "perf.data")
+                record_cmd_local = record_cmd + ["-o", perf_data_path]
 
-def _parse_report(raw: str) -> Dict[str, Any]:
-    line_pattern = re.compile(
-        r"^\s*(\d+\.\d+)%\s+(\S+)\s+(\S+)\s+\[\.?\]?\s+(\S+)(?:\+0x[0-9a-f]+)?",
-        re.MULTILINE
-    )
-    functions = []
-    for percent, _, _, symbol in line_pattern.findall(raw):
-        if len(functions) >= 10:
-            break
-        functions.append({
-            "function": symbol,
-            "self_percent": float(percent),
-            "total_percent": float(percent),
-            "call_stack": [symbol]
-        })
+                subprocess.run(record_cmd_local, stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL, check=True)
+                report_cmd_local = report_cmd + ["-i", perf_data_path]
+                report_output = subprocess.run(report_cmd_local, capture_output=True, text=True, check=True).stdout
+                return parse_report(report_output)
 
-    return {
-        "top_functions": functions
-    }
+        else:
+            config = PerfStatConfig().get_config()
+            target_host = None
+            for h in config.public_config.remote_hosts:
+                if host.strip() == h.name or host.strip() == h.host:
+                    target_host = h
+                    break
+            if not target_host:
+                if config.public_config.language == LanguageEnum.ZH:
+                    raise ValueError(f"未找到远程主机: {host}")
+                else:
+                    raise ValueError(f"Remote host not found: {host}")
+
+            client = paramiko.SSHClient()
+            client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            client.connect(
+                hostname=target_host.host,
+                port=getattr(target_host, 'port', 22),
+                username=getattr(target_host, 'username', None),
+                password=getattr(target_host, 'password', None),
+                key_filename=getattr(target_host, 'ssh_key_path', None),
+                timeout=10
+            )
+
+            # 创建远程临时目录
+            stdin, stdout, stderr = client.exec_command("mktemp -d")
+            tmpdir = stdout.read().decode("utf-8").strip()
+            perf_data_remote = os.path.join(tmpdir, "perf.data")
+            record_cmd_remote = record_cmd + ["-o", perf_data_remote]
+            record_cmd_str = " ".join(shlex.quote(arg) for arg in record_cmd_remote)
+            stdin, stdout, stderr = client.exec_command(record_cmd_str)
+            stdout.channel.recv_exit_status()  # 等待完成
+
+            report_cmd_remote = report_cmd + ["-i", perf_data_remote]
+            report_cmd_str = " ".join(shlex.quote(arg) for arg in report_cmd_remote)
+            stdin, stdout, stderr = client.exec_command(report_cmd_str)
+            stdout.channel.recv_exit_status()
+            report_output = stdout.read().decode("utf-8")
+            client.close()
+
+            return parse_report(report_output)
+
+    except subprocess.CalledProcessError as e:
+        msg = e.stderr or e.stdout or str(e)
+        if PerfStatConfig().get_config().public_config.language == LanguageEnum.ZH:
+            raise RuntimeError(f"本地 perf 执行失败: {msg}")
+        else:
+            raise RuntimeError(f"Local perf execution failed: {msg}")
+    except paramiko.AuthenticationException:
+        if PerfStatConfig().get_config().public_config.language == LanguageEnum.ZH:
+            raise RuntimeError("SSH 认证失败，请检查用户名或密钥")
+        else:
+            raise RuntimeError("SSH authentication failed, please check the username or key")
+    except paramiko.SSHException as e:
+        if PerfStatConfig().get_config().public_config.language == LanguageEnum.ZH:
+            raise RuntimeError(f"SSH 连接错误: {e}")
+        else:
+            raise RuntimeError(f"SSH connection error: {e}")
+    except Exception as e:
+        if PerfStatConfig().get_config().public_config.language == LanguageEnum.ZH:
+            raise RuntimeError(f"性能分析失败: {str(e)}")
+        else:
+            raise RuntimeError(f"Performance analysis failed: {str(e)}")
+
 
 if __name__ == "__main__":
     mcp.run(transport="sse")

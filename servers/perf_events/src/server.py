@@ -1,15 +1,19 @@
-from typing import Union, Dict, Any, List
+from typing import Union, Dict, Any
 import paramiko
 import subprocess
 import re
 import os
-import json
 import tempfile
+import shlex
 from mcp.server import FastMCP
 from config.public.base_config_loader import LanguageEnum
 from config.private.perf_events.config_loader import PerfEventsConfig
 
-mcp = FastMCP("Perf Events Tool MCP Server", host="0.0.0.0", port=PerfEventsConfig().get_config().private_config.port)
+mcp = FastMCP(
+    "Perf Events Tool MCP Server",
+    host="0.0.0.0",
+    port=PerfEventsConfig().get_config().private_config.port
+)
 
 @mcp.tool(
     name="perf_events_tool"
@@ -52,7 +56,6 @@ def perf_events_tool(host: Union[str, None] = None, pid: Union[int, None] = None
 
     def parse_perf_report(output: str, topk: int = 5) -> Dict[str, Any]:
         result = {"total_samples": 0, "event_count": 0, "hot_functions": []}
-
         m = re.search(r"^Samples:\s+([\dKMGT]+)\b", output, re.M)
         if m:
             result["total_samples"] = _parse_size(m.group(1))
@@ -67,7 +70,6 @@ def perf_events_tool(host: Union[str, None] = None, pid: Union[int, None] = None
                 if "Overhead" in line:
                     header_hit = True
                 continue
-
             if header_hit:
                 m = re.match(
                     r"^\s*(?P<overhead>\d+(?:\.\d+)?)%\s+"
@@ -78,13 +80,11 @@ def perf_events_tool(host: Union[str, None] = None, pid: Union[int, None] = None
                 )
                 if not m:
                     continue
-
                 overhead = float(m.group("overhead"))
                 command = m.group("command")
                 so = m.group("so")
                 sym_full = m.group("sym_raw").strip()
                 sym_type, symbol = sym_full[1], sym_full[4:].strip()
-
                 result["hot_functions"].append({
                     "overhead": overhead,
                     "command": command,
@@ -92,81 +92,94 @@ def perf_events_tool(host: Union[str, None] = None, pid: Union[int, None] = None
                     "symbol": symbol,
                     "symbol_type": sym_type
                 })
-
         result["hot_functions"].sort(key=lambda x: x["overhead"], reverse=True)
         result["hot_functions"] = result["hot_functions"][:topk]
         return result
 
     try:
-        perf_record_cmd = ["perf", "record"]
-        if pid:
-            perf_record_cmd.extend(["-p", str(pid)])
-        else:
-            perf_record_cmd.append("-a")
-        perf_record_cmd.extend(["sleep", "10"])
-
-        perf_report_cmd = ["perf", "report", "--stdio"]
-
         if host is None:
+            # 本地执行
             with tempfile.TemporaryDirectory() as tmpdir:
                 perf_data_path = os.path.join(tmpdir, "perf.data")
+                perf_record_cmd = ["perf", "record", "-o", perf_data_path]
+                if pid:
+                    perf_record_cmd.extend(["-p", str(pid)])
+                else:
+                    perf_record_cmd.append("-a")
+                perf_record_cmd.extend(["sleep", "10"])
 
-                print(f"[Local] Running: {' '.join(perf_record_cmd)}")
                 subprocess.run(perf_record_cmd, check=True)
-
-                print(f"[Local] Running: {' '.join(perf_report_cmd)}")
+                perf_report_cmd = ["perf", "report", "--stdio", "-i", perf_data_path]
                 result = subprocess.run(perf_report_cmd, capture_output=True, text=True, check=True)
                 return parse_perf_report(result.stdout)
 
         else:
+            # 远程执行
+            config = PerfEventsConfig().get_config()
+            target_host = None
+            for h in config.public_config.remote_hosts:
+                if host.strip() == h.name or host.strip() == h.host:
+                    target_host = h
+                    break
+            if not target_host:
+                msg = f"未找到远程主机: {host}" if config.public_config.language == LanguageEnum.ZH else f"Remote host not found: {host}"
+                raise ValueError(msg)
+
             client = paramiko.SSHClient()
             client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-
-            config = PerfEventsConfig().get_config()
-            username = config.private_config.ssh_username
-            key_file = config.private_config.ssh_key_path
-            port = config.private_config.ssh_port or 22
-
-            client.connect(host, port=port, username=username, key_filename=key_file, timeout=10)
+            client.connect(
+                hostname=target_host.host,
+                port=getattr(target_host, 'port', 22),
+                username=getattr(target_host, 'username', None),
+                password=getattr(target_host, 'password', None),
+                key_filename=getattr(target_host, 'ssh_key_path', None),
+                timeout=10
+            )
 
             stdin, stdout, stderr = client.exec_command("mktemp -d")
             tmpdir = stdout.read().decode("utf-8").strip()
-            perf_data_path = f"{tmpdir}/perf.data"
+            perf_data_remote = f"{tmpdir}/perf.data"
 
-            print(f"[Remote] Running: {' '.join(perf_record_cmd)} on {host}")
-            stdin, stdout, stderr = client.exec_command(" ".join(perf_record_cmd))
-            stdin.close()
+            # perf record
+            perf_record_cmd = ["perf", "record", "-o", perf_data_remote]
+            if pid:
+                perf_record_cmd.extend(["-p", str(pid)])
+            else:
+                perf_record_cmd.append("-a")
+            perf_record_cmd.extend(["sleep", "10"])
+            perf_record_remote_cmd = " ".join(shlex.quote(arg) for arg in perf_record_cmd)
+            stdin, stdout, stderr = client.exec_command(perf_record_remote_cmd)
             stdout.channel.recv_exit_status()
+            err = stderr.read().decode("utf-8").strip()
+            if err:
+                raise RuntimeError(err)
 
-            print(f"[Remote] Running: {' '.join(perf_report_cmd)} on {host}")
-            stdin, stdout, stderr = client.exec_command(" ".join(perf_report_cmd))
+            # perf report
+            perf_report_cmd = ["perf", "report", "--stdio", "-i", perf_data_remote]
+            perf_report_remote_cmd = " ".join(shlex.quote(arg) for arg in perf_report_cmd)
+            stdin, stdout, stderr = client.exec_command(perf_report_remote_cmd)
             output = stdout.read().decode("utf-8")
+            err = stderr.read().decode("utf-8").strip()
             client.close()
+            if err:
+                raise RuntimeError(err)
 
             return parse_perf_report(output)
 
     except subprocess.CalledProcessError as e:
-        if PerfEventsConfig().get_config().public_config.language == LanguageEnum.ZH:
-            raise RuntimeError(f"本地 perf 命令执行失败: {e.stderr}")
-        else:
-            raise RuntimeError(f"Local perf command failed: {e.stderr}")
+        msg = e.stderr or e.stdout or str(e)
+        lang = PerfEventsConfig().get_config().public_config.language
+        raise RuntimeError(f"本地 perf 命令执行失败: {msg}" if lang == LanguageEnum.ZH else f"Local perf command failed: {msg}")
     except paramiko.AuthenticationException:
-        if PerfEventsConfig().get_config().public_config.language == LanguageEnum.ZH:
-            raise RuntimeError("SSH 认证失败，请检查用户名或密钥")
-        else:
-            raise RuntimeError("SSH authentication failed, please check the username or key")
+        lang = PerfEventsConfig().get_config().public_config.language
+        raise RuntimeError("SSH 认证失败，请检查用户名或密钥" if lang == LanguageEnum.ZH else "SSH authentication failed, please check the username or key")
     except paramiko.SSHException as e:
-        if PerfEventsConfig().get_config().public_config.language == LanguageEnum.ZH:
-            raise RuntimeError(f"SSH 连接错误: {e}")
-        else:
-            raise RuntimeError(f"SSH connection error: {e}")
+        lang = PerfEventsConfig().get_config().public_config.language
+        raise RuntimeError(f"SSH 连接错误: {e}" if lang == LanguageEnum.ZH else f"SSH connection error: {e}")
     except Exception as e:
-        if PerfEventsConfig().get_config().public_config.language == LanguageEnum.ZH:
-            raise RuntimeError(f"性能分析失败: {str(e)}")
-        else:
-            raise RuntimeError(f"Performance analysis failed: {str(e)}")
+        lang = PerfEventsConfig().get_config().public_config.language
+        raise RuntimeError(f"性能分析失败: {str(e)}" if lang == LanguageEnum.ZH else f"Performance analysis failed: {str(e)}")
 
 
 if __name__ == "__main__":
-    # 启动服务
     mcp.run(transport='sse')

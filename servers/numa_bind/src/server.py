@@ -70,15 +70,28 @@ def numa_bind_tool(
     def execute_remote():
         """远程执行 numactl 命令"""
         config = NumaBindConfig().get_config()
-        username = config.private_config.ssh_username
-        key_file = config.private_config.ssh_key_path
-        port = config.private_config.ssh_port or 22
+
+        host_cfg = next(
+            (h for h in config.public_config.remote_hosts if h.name == host or h.host == host),
+            None
+        )
+        if not host_cfg:
+            raise RuntimeError(f"未找到主机 {host} 的配置")
+
+        ssh_username = host_cfg.username
+        ssh_password = getattr(host_cfg, "password", None)
+        ssh_key_file = getattr(host_cfg, "ssh_key_path", None)
+        ssh_port = getattr(host_cfg, "port", 22)
 
         client = paramiko.SSHClient()
         client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
         try:
-            client.connect(host, port=port, username=username, key_filename=key_file, timeout=10)
+            if ssh_key_file:
+                client.connect(host_cfg.host, port=ssh_port, username=ssh_username, key_filename=ssh_key_file, timeout=10)
+            else:
+                client.connect(host_cfg.host, port=ssh_port, username=ssh_username, password=ssh_password, timeout=10)
+
             command = f"numactl -N {numa_node} -m {memory_node} {program_path}"
             stdin, stdout, stderr = client.exec_command(command)
             stdout_text = stdout.read().decode('utf-8')
