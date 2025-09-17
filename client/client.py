@@ -160,7 +160,6 @@ async def main() -> None:
     # })
     # result = await client.call_tool("numastat_info_tool", {"host": "mengzi"})
     # result = await client.call_tool("perf_events_tool", {"host": "mengzi", "pid": 1})
-    # result = await client.call_tool("perf_events_tool", {})
     # result = await client.call_tool("perf_stat_tool", {"host": "mengzi"})
     # result = await client.call_tool("perf_top_tool", {"host": "mengzi", "pid": 1})
     # result = await client.call_tool("numa_cross_node", {"host": "mengzi"})
@@ -168,13 +167,13 @@ async def main() -> None:
     # result = await client.call_tool("strace_syscall", {"host": "mengzi", "pid": 1})
     # result = await client.call_tool("flame_graph", {
     #     "host": "mengzi",
-    #     "perf_data_path": "~/perf.data",
-    #     "output_path": "~/cpu_flamegraph.svg",
-    #     "flamegraph_path": "~/FlameGraph"
+    #     "perf_data_path": "root/perf.data",
+    #     "output_path": "root/cpu_flamegraph.svg",
+    #     "flamegraph_path": "root/FlameGraph"
     # })
     # result = await client.call_tool("numa_benchmark", {
     #     "host": "mengzi",
-    #     'benchmark': "/root/mcp_center/stream"
+    #     'benchmark': "/root/stream"
     # })
     # result = await client.call_tool("numa_hardware", {"host": "mengzi"})
     # result = await client.call_tool("monitor_docker", {

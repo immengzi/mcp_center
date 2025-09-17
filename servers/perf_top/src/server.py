@@ -28,9 +28,9 @@ mcp = FastMCP(
         dict {
             "top_functions": List[{
                 "function": str,
-                "self_percent": float,   # 自身耗时占比
-                "total_percent": float,  # 总耗时占比（含子函数）
-                "call_stack": List[str]  # 调用栈（从最外层到当前函数）
+                "self_percent": float,
+                "total_percent": float,
+                "call_stack": List[str]
             }]
         }
     """
@@ -53,17 +53,14 @@ mcp = FastMCP(
 )
 def perf_top_tool(pid: int, host: Optional[str] = None) -> Dict[str, Any]:
     """采集并解析 perf record 的调用栈耗时"""
-    record_cmd = [
-        "perf", "record", "-g", "--call-graph", "dwarf",
-        "-F", "997", "-p", str(pid), "--", "sleep", "30"
+    record_cmd_base = [
+        "perf", "record", "-g", "--call-graph", "dwarf", "-F", "997", "-p", str(pid)
     ]
     report_cmd = ["perf", "report", "--no-children", "--stdio"]
 
     def parse_report(raw: str) -> Dict[str, Any]:
-        line_pattern = re.compile(
-            r"^\s*(\d+\.\d+)%\s+\S+\s+\S+\s+\[\.?\]?\s+(\S+)(?:\+0x[0-9a-f]+)?",
-            re.MULTILINE
-        )
+        # 宽松正则，匹配 kernel 和用户态函数
+        line_pattern = re.compile(r"^\s*(\d+\.\d+)%.*?(\S+)", re.MULTILINE)
         functions = []
         for percent, symbol in line_pattern.findall(raw):
             if len(functions) >= 10:
@@ -80,14 +77,16 @@ def perf_top_tool(pid: int, host: Optional[str] = None) -> Dict[str, Any]:
         if host is None:
             with tempfile.TemporaryDirectory() as tmp:
                 perf_data_path = os.path.join(tmp, "perf.data")
-                record_cmd_local = record_cmd + ["-o", perf_data_path]
+                # -o 放在 -- 之前
+                record_cmd_local = record_cmd_base + ["-o", perf_data_path, "--", "sleep", "30"]
 
-                subprocess.run(record_cmd_local, stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL, check=True)
+                subprocess.run(record_cmd_local, stderr=subprocess.PIPE, stdout=subprocess.PIPE, check=True)
                 report_cmd_local = report_cmd + ["-i", perf_data_path]
                 report_output = subprocess.run(report_cmd_local, capture_output=True, text=True, check=True).stdout
                 return parse_report(report_output)
 
         else:
+            # 远程执行
             config = PerfStatConfig().get_config()
             target_host = None
             for h in config.public_config.remote_hosts:
@@ -95,10 +94,8 @@ def perf_top_tool(pid: int, host: Optional[str] = None) -> Dict[str, Any]:
                     target_host = h
                     break
             if not target_host:
-                if config.public_config.language == LanguageEnum.ZH:
-                    raise ValueError(f"未找到远程主机: {host}")
-                else:
-                    raise ValueError(f"Remote host not found: {host}")
+                raise ValueError(f"未找到远程主机: {host}" if config.public_config.language == LanguageEnum.ZH
+                                 else f"Remote host not found: {host}")
 
             client = paramiko.SSHClient()
             client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -111,14 +108,13 @@ def perf_top_tool(pid: int, host: Optional[str] = None) -> Dict[str, Any]:
                 timeout=10
             )
 
-            # 创建远程临时目录
             stdin, stdout, stderr = client.exec_command("mktemp -d")
             tmpdir = stdout.read().decode("utf-8").strip()
             perf_data_remote = os.path.join(tmpdir, "perf.data")
-            record_cmd_remote = record_cmd + ["-o", perf_data_remote]
+            record_cmd_remote = record_cmd_base + ["-o", perf_data_remote, "--", "sleep", "30"]
             record_cmd_str = " ".join(shlex.quote(arg) for arg in record_cmd_remote)
             stdin, stdout, stderr = client.exec_command(record_cmd_str)
-            stdout.channel.recv_exit_status()  # 等待完成
+            stdout.channel.recv_exit_status()
 
             report_cmd_remote = report_cmd + ["-i", perf_data_remote]
             report_cmd_str = " ".join(shlex.quote(arg) for arg in report_cmd_remote)
@@ -131,25 +127,17 @@ def perf_top_tool(pid: int, host: Optional[str] = None) -> Dict[str, Any]:
 
     except subprocess.CalledProcessError as e:
         msg = e.stderr or e.stdout or str(e)
-        if PerfStatConfig().get_config().public_config.language == LanguageEnum.ZH:
-            raise RuntimeError(f"本地 perf 执行失败: {msg}")
-        else:
-            raise RuntimeError(f"Local perf execution failed: {msg}")
+        raise RuntimeError(f"本地 perf 执行失败: {msg}" if PerfStatConfig().get_config().public_config.language == LanguageEnum.ZH
+                           else f"Local perf execution failed: {msg}")
     except paramiko.AuthenticationException:
-        if PerfStatConfig().get_config().public_config.language == LanguageEnum.ZH:
-            raise RuntimeError("SSH 认证失败，请检查用户名或密钥")
-        else:
-            raise RuntimeError("SSH authentication failed, please check the username or key")
+        raise RuntimeError("SSH 认证失败，请检查用户名或密钥" if PerfStatConfig().get_config().public_config.language == LanguageEnum.ZH
+                           else "SSH authentication failed, please check the username or key")
     except paramiko.SSHException as e:
-        if PerfStatConfig().get_config().public_config.language == LanguageEnum.ZH:
-            raise RuntimeError(f"SSH 连接错误: {e}")
-        else:
-            raise RuntimeError(f"SSH connection error: {e}")
+        raise RuntimeError(f"SSH 连接错误: {e}" if PerfStatConfig().get_config().public_config.language == LanguageEnum.ZH
+                           else f"SSH connection error: {e}")
     except Exception as e:
-        if PerfStatConfig().get_config().public_config.language == LanguageEnum.ZH:
-            raise RuntimeError(f"性能分析失败: {str(e)}")
-        else:
-            raise RuntimeError(f"Performance analysis failed: {str(e)}")
+        raise RuntimeError(f"性能分析失败: {str(e)}" if PerfStatConfig().get_config().public_config.language == LanguageEnum.ZH
+                           else f"Performance analysis failed: {str(e)}")
 
 
 if __name__ == "__main__":

@@ -4,6 +4,7 @@ import subprocess
 import re
 from datetime import datetime
 from mcp.server import FastMCP
+from config.public.base_config_loader import LanguageEnum
 from config.private.numa_benchmark.config_loader import NumaBenchmarkConfig
 
 mcp = FastMCP("NUMA Benchmark MCP Server",
