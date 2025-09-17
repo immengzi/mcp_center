@@ -120,7 +120,7 @@ class MCPClient:
 
 async def main() -> None:
     """测试MCP Client"""
-    url = "http://0.0.0.0:13125/sse"
+    url = "http://0.0.0.0:12101/sse"
     headers = {}
     client = MCPClient(url, headers)
     await client.init()

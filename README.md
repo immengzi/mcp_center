@@ -70,4 +70,3 @@ mcp_center 用于构建 oe 智能助手，其目录结构如下：
 | 目录   | mcp_center/servers/servers/shell_generator  |
 | 占用端口 | 12101                    |
 | 简介   | 生成&执行shell命令   |
-

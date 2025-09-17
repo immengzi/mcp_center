@@ -71,4 +71,3 @@ mcp_center is used to build the oe intelligent assistant, and its directory stru
 | Directory| mcp_center/servers/servers/shell_generator |
 | Port Used| 12101                       |
 | Introduction | Generate & execute shell commands |
-
