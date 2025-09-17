@@ -132,20 +132,20 @@ class MCPClient:
 
 async def main() -> None:
     """测试MCP Client"""
-    url = "http://0.0.0.0:12100/sse"
+    url = "http://0.0.0.0:12216/sse"
     headers = {}
     client = MCPClient(url, headers)
     await client.init()
     # result = await client.call_tool("top_collect_tool", {"host": "mengzi", "k": 5})
     # result = await client.call_tool("lscpu_info_tool", {"host": "mengzi"})
     # result = await client.call_tool("numa_topo_tool", {"host": "mengzi"})
-    # result = await client.call_tool("numa_bind_tool", {
+    # result = await client.call_tool("numa_bind_proc_tool", {
     #     "host": "mengzi",
     #     "numa_node": 0,
     #     "memory_node": 0,
     #     "program_path": "/root/mcp_center/test/hello"
     # })
-    # result = await client.call_tool("numa_rebind_tool", {
+    # result = await client.call_tool("numa_rebind_proc_tool", {
     #     "host": "mengzi",
     #     "pid": 982, # firewalld
     #     "from_node": 0,
@@ -154,31 +154,32 @@ async def main() -> None:
     # result = await client.call_tool("numa_bind_docker_tool", {
     #     "host": "mengzi",
     #     "image": "nginx",
-    #     "cpuset_cpus": "0-3",
+    #     "cpuset_cpus": "0-0",
     #     "cpuset_mems": "0",
     #     "detach": True
     # })
+    # result = await client.call_tool("numa_perf_compare", {
+    #     "host": "mengzi",
+    #     'benchmark': "/root/stream"
+    # })
+    # result = await client.call_tool("numa_diagnose", {"host": "mengzi"})
     # result = await client.call_tool("numastat_info_tool", {"host": "mengzi"})
-    # result = await client.call_tool("perf_events_tool", {"host": "mengzi", "pid": 1})
-    # result = await client.call_tool("perf_stat_tool", {"host": "mengzi"})
-    # result = await client.call_tool("perf_top_tool", {"host": "mengzi", "pid": 1})
     # result = await client.call_tool("numa_cross_node", {"host": "mengzi"})
-    # result = await client.call_tool("perf_interrupt_health_check", {"host": "mengzi"})
+    # result = await client.call_tool("numa_container", {
+    #     "host": "mengzi",
+    #     "container_id": "7cb48a"
+    # })
+    # result = await client.call_tool("hotspot_trace_tool", {"host": "mengzi", "pid": 751})
+    result = await client.call_tool("hotspot_trace_tool", {"host": "mengzi"})
+    # result = await client.call_tool("cache_miss_audit_tool", {"host": "mengzi"})
+    # result = await client.call_tool("func_timing_trace_tool", {"host": "mengzi", "pid": 1})
     # result = await client.call_tool("strace_syscall", {"host": "mengzi", "pid": 1})
+    # result = await client.call_tool("perf_interrupt_health_check", {"host": "mengzi"})
     # result = await client.call_tool("flame_graph", {
     #     "host": "mengzi",
     #     "perf_data_path": "root/perf.data",
     #     "output_path": "root/cpu_flamegraph.svg",
     #     "flamegraph_path": "root/FlameGraph"
-    # })
-    # result = await client.call_tool("numa_benchmark", {
-    #     "host": "mengzi",
-    #     'benchmark': "/root/stream"
-    # })
-    # result = await client.call_tool("numa_hardware", {"host": "mengzi"})
-    # result = await client.call_tool("monitor_docker", {
-    #     "host": "mengzi",
-    #     "container_id": "7cb48a"
     # })
 
     print(result)

@@ -1,3 +1,3 @@
-| 工具名称 | 工具功能 | 核心输入参数 | 关键返回内容 |
-| ---- | ---- | ---- | ---- |
-| `flame_graph` | 生成CPU火焰图用于性能分析（支持本地与远程主机） | - `host`: 远程主机地址（可选）<br>- `perf_data_path`: perf.data输入路径（默认：/var/log/profiling/perf.data）<br>- `output_path`: SVG输出路径（默认：/home/ubuntu/results/cpu_flamegraph.svg）<br>- `flamegraph_path`: FlameGraph脚本路径（默认：/opt/FlameGraph） | - `svg_path`: 生成的火焰图文件路径<br>- `status`: 生成状态（success/failure）<br>- `message`: 状态信息 |
+| 工具名称          | 工具功能                                      | 核心输入参数                                                                                                                                                         | 关键返回内容                                                                            |
+| ------------- | ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| `flame_graph` | 基于 `perf.data` 生成 CPU 火焰图，用于性能分析（支持本地/远程） | - `host`：远程主机地址（可选）<br>- `perf_data_path`：perf.data 输入路径（必选）<br>- `output_path`：SVG 输出路径（默认：\~/cpu\_flamegraph.svg）<br>- `flamegraph_path`：FlameGraph 脚本路径（必选） | - `svg_path`：生成的火焰图文件路径<br>- `status`：生成状态（success / failure）<br>- `message`：状态信息 |

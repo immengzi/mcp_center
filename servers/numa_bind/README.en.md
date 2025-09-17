@@ -1,3 +1,0 @@
-| Tool Name | Tool Function | Core Input Parameters | Key Return Content |
-| ---- | ---- | ---- | ---- |
-| `numa_bind_tool` | Binds a process to a specified NUMA node when starting a process on a target device (local/remote), avoiding cross-node operations | - `host`: Remote hostname/IP (optional for local collection), `numa_node`: Specified NUMA node number (integer), `memory_node`: Specified memory node number (integer), `program_path`: Path to the program to be run | `stdout`: Standard output of the program, `stderr`: Standard error, `exit_code`: Exit status code |

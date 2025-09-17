@@ -1,3 +1,0 @@
-| Tool Name | Tool Function | Core Input Parameters | Key Return Content |
-| ---- | ---- | ---- | ---- |
-| `numa_hardware` | Retrieve **NUMA architecture hardware monitoring information** (supports local or remote hosts) | - `host`: Remote hostname/IP (not required for local collection)<br>- `timeout`: Command execution timeout (default 30 seconds) | - `real_time_frequencies`: Real-time frequencies of each CPU core (MHz) <br>- `specifications`: CPU model/maximum and minimum frequencies<br>- `numa_topology`: Mapping of NUMA nodes to CPU cores |
