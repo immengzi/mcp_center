@@ -120,11 +120,25 @@ class MCPClient:
 
 async def main() -> None:
     """测试MCP Client"""
-    url = "http://0.0.0.0:12101/sse"
+    url = "http://0.0.0.0:13125/sse"
     headers = {}
     client = MCPClient(url, headers)
     await client.init()
-    result = await client.call_tool("top_collect_tool", {"k": 5})
+    # result = await client.call_tool("top_collect_tool", {"k": 5})
+    # result = await client.call_tool("free_collect_tool", {})
+    # result = await client.call_tool("chown_modify_permissions_tool", {"owner_group": "donglihao", "file": "/home/donglihao/test/1.txt"})
+    # result = await client.call_tool("chmod_change_mode_tool", {"mode": "+x", "file": "/home/donglihao/test/1.txt"})
+    # result = await client.call_tool("tar_extract_file_tool", {"options": "-xvf", "file": "/home/donglihao/test/tar_test.tar"})
+    # result = await client.call_tool("tar_compress_file_tool", {"options": "-czvf", "source_path": "/home/donglihao/test/1.txt", "archive_path": "/home/donglihao/test/tar_test1.tar"})
+    # result = await client.call_tool("zip_extract_file_tool", {"file": "/home/donglihao/test/zip_test.zip", "extract_path": "/home/donglihao/test/zip_test"})
+    # result = await client.call_tool("zip_compress_file_tool", {"source_path": "/home/donglihao/test/zip_test", "archive_path": "/home/donglihao/test/zip_test.zip"})
+    # result = await client.call_tool("grep_search_tool", {"options": "-i", "pattern": "12345", "file": "/home/donglihao/test/1.txt"})
+    result = await client.call_tool("echo_write_to_file_tool", {
+        "text": "Hello, World!", 
+        "file": "/home/donglihao/test/1.txt",
+        "options": "-n",
+        "mode": "w"
+    })  # 返回布尔值，表示操作是否成功
     print(result)
     await client.stop()
 
