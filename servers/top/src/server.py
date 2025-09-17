@@ -27,6 +27,10 @@ from servers.top.src.ssh_connection import SSHConnection
 mcp = FastMCP("Perf_Svg MCP Server", host="0.0.0.0", port=TopCommandConfig().get_config().private_config.port)
 
 
+def get_language_config() -> bool:
+    """获取语言配置：True=中文，False=英文（避免重复调用配置）"""
+    return TopCommandConfig().get_config().public_config.language == LanguageEnum.ZH
+
 @mcp.tool(
     name="top_collect_tool"
     if TopCommandConfig().get_config().public_config.language == LanguageEnum.ZH
@@ -112,15 +116,13 @@ def top_collect_tool(host: Union[str, None] = None, k: int = 5) -> List[Dict[str
 
 @mcp.tool(
     name="top_servers_tool"
-    if TopCommandConfig().get_config().public_config.language == LanguageEnum.ZH
-    else
-    "top_servers_tool",
+    if get_language_config() else "top_servers_tool",
     description="""
-    获取服务器负载信息的主入口函数，支持多服务器、多维度、进程信息
+    获取单个服务器负载信息的工具函数，支持多维度、进程信息（多服务器需多次调用）
     
     参数:
-        -host: 服务器IP地址/主机名称，支持单个IP/主机名称字符串或IP/主机名称列表，可为None即本机
-            示例: "192.168.1.100" 或 ["192.168.1.100", "192.168.1.101"]
+        -host: 服务器IP地址/主机名称，可为None（None即表示本机127.0.0.1）
+            示例: "192.168.1.100" 或 "localhost" 或 None
         -dimensions: 监控维度列表，可选值：cpu、memory、disk、network
             默认为 ["cpu", "memory"]
         -include_processes: 是否返回Top N进程信息
@@ -129,21 +131,19 @@ def top_collect_tool(host: Union[str, None] = None, k: int = 5) -> List[Dict[str
             默认为5
     
     返回:
-        服务器负载信息列表，每个元素包含：
+        单个服务器负载信息字典，包含：
         - server_info: 服务器基本信息（IP、状态、时间戳）
         - metrics: 各维度指标（仅包含请求的维度）
         - processes: 进程信息（仅当include_processes=True时存在）
         - error: 错误信息（仅当发生错误时存在）
     """
-    if TopCommandConfig().get_config().public_config.language == LanguageEnum.ZH
-    else
+    if get_language_config() else
     """
-    Main entry function for obtaining server load information, supporting multiple servers, 
-    multiple dimensions, and process information
+    Tool function for obtaining load information of a single server, supporting multiple dimensions and process information (multiple calls required for multiple servers)
     
     Parameters:
-        -host:  Server IP address/hostname, supports a single IP/hostname string or IP/hostname list, can be None for localhost.
-            Example: "192.168.1.100" or ["192.168.1.100", "192.168.1.101"] or None(localhost)
+        -host: Server IP address/hostname, can be None (None means localhost 127.0.0.1)
+            Example: "192.168.1.100" or "localhost" or None
         -dimensions: List of monitoring dimensions, optional values: cpu, memory, disk, network
             Default: ["cpu", "memory"]
         -include_processes: Whether to return Top N process information
@@ -152,7 +152,7 @@ def top_collect_tool(host: Union[str, None] = None, k: int = 5) -> List[Dict[str
             Default: 5
     
     Returns:
-        A list of server load information, where each element contains:
+        Single server load information dictionary, including:
         - server_info: Basic server information (IP, status, timestamp)
         - metrics: Various dimension metrics (only includes requested dimensions)
         - processes: Process information (only present when include_processes=True)
@@ -160,111 +160,159 @@ def top_collect_tool(host: Union[str, None] = None, k: int = 5) -> List[Dict[str
     """
 )
 def top_servers_tool(
-    host: Optional[Union[str, List[str]]] = None,
-    dimensions: Optional[List[str]] = None,
+    host: Optional[str] = None,
+    dimensions: Optional[list[str]] = None,
     include_processes: bool = False,
     top_n: int = 5
-) -> List[Dict]:
-    # 标准化输入参数
-    logger.info("into--------------------------")
-    if host is None:
-        logger.info("127.0.0.1")
-        host_list = ["127.0.0.1"]
-    else:
-        host_list = [host] if isinstance(host, str) else host
+) -> Dict:
+    is_zh = get_language_config()
+    # 1. 标准化输入：统一处理None/具体IP，明确当前监控的单个主机
+    target_ip = "127.0.0.1" if host is None else host.strip()
+    logger.info(f"开始处理单个服务器负载采集：{target_ip}（{'本机' if target_ip == '127.0.0.1' else '远程主机'}）")
 
-    # 标准化监控维度
+    # 2. 标准化监控维度（保留原校验逻辑，确保输入有效）
     valid_dimensions = {"cpu", "memory", "disk", "network"}
     dimensions = dimensions or ["cpu", "memory"]
     invalid_dims = [d for d in dimensions if d not in valid_dimensions]
     if invalid_dims:
-        raise ValueError(
+        err_msg = (
             f"无效的监控维度: {invalid_dims}，支持的维度: {sorted(valid_dimensions)}"
-            if TopCommandConfig().get_config().public_config.language == LanguageEnum.ZH else
-            ValueError(
-                f"Invalid monitoring dimension: {invalid_dims}, supported dimensions: {sorted(valid_dimensions)}"))
+            if is_zh else
+            f"Invalid monitoring dimension: {invalid_dims}, supported dimensions: {sorted(valid_dimensions)}")
+        logger.error(err_msg)
+        raise ValueError(err_msg)
+    logger.info(f"监控维度：{dimensions}，是否包含进程信息：{include_processes}（Top {top_n}）")
 
-    # 处理每个IP的负载采集
-    results = []
-    for ip in host_list:
-        # 创建基础结果结构
-        result = create_base_result(ip)
+    # 3. 初始化结果结构（单个主机结果，无需列表包装）
+    result = create_base_result(target_ip)
+    remote_hosts_config = TopCommandConfig().get_config().public_config.remote_hosts  # 远程主机配置（假设为字典列表）
 
-        try:
-            # 获取服务器认证信息
-            server_auth = get_server_auth(ip, TopCommandConfig().get_config().public_config.remote_hosts)
-            # 本地服务器直接采集（无需SSH）
-            if server_auth is None:
-                # 采集指定维度指标
-                is_local = True
+    try:
+        # 3.1 本地采集：target_ip为127.0.0.1时走本地逻辑（无需SSH）
+        if target_ip == "127.0.0.1":
+            logger.info(f"开始采集本机（{target_ip}）负载信息")
+            # 调用本地指标采集函数（ssh_conn传None）
+            for dim in dimensions:
+                if dim == "cpu":
+                    result["metrics"].update(get_cpu_metrics(is_local=True, ssh_conn=None))
+                elif dim == "memory":
+                    result["metrics"].update(get_memory_metrics(is_local=True, ssh_conn=None))
+                elif dim == "disk":
+                    result["metrics"].update(get_disk_metrics(is_local=True, ssh_conn=None))
+                elif dim == "network":
+                    result["metrics"].update(get_network_metrics(is_local=True, ssh_conn=None))
+            # 采集进程信息（如需）
+            if include_processes:
+                result["processes"] = get_process_metrics(is_local=True, ssh_conn=None, top_n=top_n)
+            result["server_info"]["status"] = "online"
+            logger.info(f"本机（{target_ip}）负载采集完成")
+
+        # 3.2 远程采集：非127.0.0.1时走SSH逻辑（修复参数报红核心区）
+        else:
+            logger.info(f"开始采集远程主机（{target_ip}）负载信息，尝试获取认证配置")
+            # 1. 获取远程认证配置（返回字典，避免自定义对象属性访问报红）
+            server_auth = get_server_auth(target_ip, remote_hosts_config)
+            if not server_auth:
+                err_msg = (
+                    f"未找到远程主机（{target_ip}）的认证配置，无法建立连接"
+                    if is_zh else
+                    f"Authentication config for remote host ({target_ip}) not found, cannot establish connection")
+                logger.error(err_msg)
+                result["server_info"]["status"] = "config_error"
+                result["error"] = err_msg
+                return result
+
+            # 2. 提取SSH连接参数（增加默认值，避免KeyError）
+            ssh_host = server_auth.get("host", target_ip)  # 主机地址：优先配置，其次目标IP
+            ssh_port = server_auth.get("port", 22)         # 端口：默认22（SSH标准端口）
+            ssh_user = server_auth.get("username")         # 用户名：配置必须提供
+            ssh_pwd = server_auth.get("password")          # 密码：配置必须提供
+
+            # 3. 校验关键参数（避免空值导致连接失败）
+            if not ssh_user or not ssh_pwd:
+                err_msg = (
+                    f"远程主机（{target_ip}）的认证配置缺失用户名或密码"
+                    if is_zh else f"Authentication config for remote host ({target_ip}) lacks username or password")
+                logger.error(err_msg)
+                result["server_info"]["status"] = "config_error"
+                result["error"] = err_msg
+                return result
+
+            # 4. SSH连接逻辑（使用提取的参数，避免直接访问字典属性报红）
+            ssh_conn = None
+            try:
+                # 初始化SSH客户端并设置密钥策略
+                ssh_conn = paramiko.SSHClient()
+                ssh_conn.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+                logger.info(f"尝试连接远程主机：地址={ssh_host}，端口={ssh_port}，用户名={ssh_user}")
+
+                # 建立SSH连接（参数均为明确变量，无字典属性访问，避免报红）
+                ssh_conn.connect(
+                    hostname=ssh_host,
+                    port=ssh_port,
+                    username=ssh_user,
+                    password=ssh_pwd,
+                    timeout=10,          # 连接超时（秒）
+                    banner_timeout=10    # 服务器Banner响应超时（适配慢网络）
+                )
+                logger.info(f"远程主机（{target_ip}）SSH连接成功")
+
+                # 调用远程指标采集函数（is_local传False）
                 for dim in dimensions:
                     if dim == "cpu":
-                        result["metrics"].update(get_cpu_metrics(is_local, None))
+                        result["metrics"].update(get_cpu_metrics(is_local=False, ssh_conn=ssh_conn))
                     elif dim == "memory":
-                        result["metrics"].update(get_memory_metrics(is_local, None))
+                        result["metrics"].update(get_memory_metrics(is_local=False, ssh_conn=ssh_conn))
                     elif dim == "disk":
-                        result["metrics"].update(get_disk_metrics(is_local, None))
+                        result["metrics"].update(get_disk_metrics(is_local=False, ssh_conn=ssh_conn))
                     elif dim == "network":
-                        result["metrics"].update(get_network_metrics(is_local, None))
-
-                # 采集进程信息（如果需要）
+                        result["metrics"].update(get_network_metrics(is_local=False, ssh_conn=ssh_conn))
+                # 采集远程进程信息（如需）
                 if include_processes:
-                    result["metrics"].update(get_process_metrics(is_local, None, top_n))
+                    result["processes"] = get_process_metrics(is_local=False, ssh_conn=ssh_conn, top_n=top_n)
 
                 result["server_info"]["status"] = "online"
+                logger.info(f"远程主机（{target_ip}）负载采集完成")
 
-            # 远程服务器通过SSH采集
-            else:
-                # 使用SSH上下文管理器，自动处理连接生命周期
-                with SSHConnection(
-                    ip=server_auth.host,
-                    port=server_auth.port,
-                    username=server_auth.username,
-                    password=server_auth.password,
-                ) as (conn_success, conn_obj):
-                    is_local = False
-                    logger.info("into--------------------------SSH链接:%s", conn_success)
-                    if not conn_success:
-                        logger.info("into--------------------------SSH-offline")
-                        result["server_info"]["status"] = "offline"
-                        result["error"] = conn_obj
-                        results.append(result)
-                        continue
-                    ssh_conn = conn_obj
-                    if not isinstance(ssh_conn, paramiko.SSHClient):
-                        # 可以选择抛出异常
-                        logger.info("into--------------------------SSH-无效对象")
-                        result["server_info"]["status"] = "error"
-                        result["error"] = "无效的SSH连接对象" if TopCommandConfig().get_config(
-                        ).public_config.language == LanguageEnum.ZH else "Invalid SSH connection object"
-                        results.append(result)
-                        return results
-                    # 采集指定维度指标
-                    logger.info("info-----------------choice dim")
-                    for dim in dimensions:
-                        logger.info("info-----------------choice %s", dim)
-                        if dim == "cpu":
-                            result["metrics"].update(get_cpu_metrics(is_local, ssh_conn))
-                        elif dim == "memory":
-                            result["metrics"].update(get_memory_metrics(is_local, ssh_conn))
-                        elif dim == "disk":
-                            result["metrics"].update(get_disk_metrics(is_local, ssh_conn))
-                        elif dim == "network":
-                            result["metrics"].update(get_network_metrics(is_local, ssh_conn))
+            # SSH错误分类：明确不同错误场景，便于排查
+            except paramiko.AuthenticationException:
+                err_msg = (
+                    f"远程主机（{target_ip}）SSH认证失败：用户名或密码错误"
+                    if is_zh else
+                    f"SSH authentication failed for remote host ({target_ip}): wrong username or password")
+                logger.error(err_msg)
+                result["server_info"]["status"] = "auth_error"
+                result["error"] = err_msg
+            except paramiko.SSHException as e:
+                err_msg = (f"远程主机（{target_ip}）SSH连接异常：{str(e)}"
+                           if is_zh else f"SSH connection exception for remote host ({target_ip}): {str(e)}")
+                logger.error(err_msg)
+                result["server_info"]["status"] = "ssh_error"
+                result["error"] = err_msg
+            except TimeoutError:
+                err_msg = (
+                    f"远程主机（{target_ip}）SSH连接超时：请检查网络连通性或主机是否在线"
+                    if is_zh else
+                    f"SSH connection timed out for remote host ({target_ip}): check network or host status")
+                logger.error(err_msg)
+                result["server_info"]["status"] = "timeout"
+                result["error"] = err_msg
+            except Exception as e:
+                err_msg = (f"远程主机（{target_ip}）连接未知错误：{str(e)}"
+                           if is_zh else f"Unknown connection error for remote host ({target_ip}): {str(e)}")
+                logger.error(err_msg)
+                result["server_info"]["status"] = "unknown_error"
+                result["error"] = err_msg
+    # 3.3 全局异常捕获：覆盖采集过程中所有未预料的错误
+    except Exception as e:
+        err_msg = (f"服务器（{target_ip}）负载采集异常：{str(e)}"
+                   if is_zh else f"Load collection exception for server ({target_ip}): {str(e)}")
+        logger.error(err_msg)
+        result["server_info"]["status"] = "collect_error"
+        result["error"] = err_msg
 
-                    # 采集进程信息（如果需要）
-                    if include_processes:
-                        result["metrics"].update(get_process_metrics(is_local, ssh_conn, top_n))
-
-                    result["server_info"]["status"] = "online"
-
-        except Exception as e:
-            result["server_info"]["status"] = "server——error"
-            result["error"] = str(e)
-
-        results.append(result)
-
-    return results
+    logger.info(f"单个服务器（{target_ip}）负载采集流程结束")
+    return result
 
 
 # 注册其他专用工具函数（按需扩展）

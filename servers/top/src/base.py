@@ -1,7 +1,7 @@
 """公共基础层：封装所有维度都需要的复用逻辑"""
 import paramiko
 from datetime import datetime
-from typing import Dict, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 from config.private.top.config_loader import TopCommandConfig
 from config.public.base_config_loader import LanguageEnum, RemoteConfigModel
@@ -39,16 +39,19 @@ def execute_command(ssh_conn: paramiko.SSHClient, command: str) -> Tuple[bool, s
                         ).public_config.language == LanguageEnum.ZH else f"Command execution failed: {str(e)}"
     
 
-def get_server_auth(ip: str, host_configs : list[RemoteConfigModel]) -> Optional[RemoteConfigModel] :
-    """获取指定服务器的认证信息，支持本地服务器特殊处理"""
-    if ip in ("127.0.0.1", "localhost") or ip is None:
-        return None
-    for host_config in host_configs:
-        
-        if ip == host_config.name or ip == host_config.host:
-            return host_config
-        
-    raise ValueError(f"服务器 {ip} 未在配置文件中定义"if TopCommandConfig().get_config(
-                        ).public_config.language == LanguageEnum.ZH else f"Server {ip} is not defined in the configuration file")
-        
-        
+def get_server_auth(ip: str, remote_hosts: list) -> Optional[Dict]:
+    """
+    修复：将返回值改为字典类型（而非自定义对象），避免属性访问报红
+    获取服务器认证信息：匹配IP/主机名对应的连接配置
+    """
+    for host_config in remote_hosts:
+        # 假设remote_hosts中每个元素是字典，包含"host"/"hostname"/"port"/"username"/"password"键
+        if ip in [host_config.host, host_config.name]:
+            # 返回标准连接字典，确保键与后续使用一致
+            return {
+                "host": host_config.host,  # 默认为目标IP
+                "port": host_config.port,  # 默认为SSH默认端口22
+                "username": host_config.username,
+                "password": host_config.password
+            }
+    return None

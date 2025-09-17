@@ -6,7 +6,7 @@ import toml
 
 class NumaPerfCompareConfigModel(BaseModel):
     """顶层配置模型"""
-    port: int = Field(default=12100, description="MCP服务端口")
+    port: int = Field(default=12208, description="MCP服务端口")
 
 
 class NumaPerfCompareConfig(BaseConfig):

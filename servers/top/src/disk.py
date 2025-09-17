@@ -90,8 +90,8 @@ def collect_remote_disk(ssh_conn: paramiko.SSHClient) -> Dict[str, Any]:
         "io": {
             "read_mb_s": round(float(io_data[2]) / 1024, 1),  # 转换为MB/s
             "write_mb_s": round(float(io_data[3]) / 1024, 1),
-            "read_count": int(io_data[0]),
-            "write_count": int(io_data[1])
+            "read_count": round(float(io_data[0])),  # 四舍五入
+            "write_count": round(float(io_data[1]))   # 四舍五入
         }
     }
 

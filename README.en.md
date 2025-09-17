@@ -44,9 +44,9 @@ mcp_center is used to build the oe intelligent assistant, and its directory stru
    ```
 
 3. **Document Updates**  
-   For each new mcp added, you need to synchronously add the basic information of the mcp to the existing mcp section in the main directory's README (ensure that ports do not conflict, starting from 12100).
-   For each new mcp added, you need to add a .service file in the service directory of the main directory to make the mcp a service.
-   For each new mcp added, you need to create a corresponding directory in mcp_config of the main directory and create a config.json under it (for registering the mcp to the framework).
+   For each new mcp added, you need to synchronously add the basic information of the mcp to the existing mcp section in the main directory's README (ensure that ports do not conflict, starting from 12100).<br>
+   For each new mcp added, you need to add a .service file in the service directory of the main directory to make the mcp a service.<br>
+   For each new mcp added, you need to create a corresponding directory in mcp_config of the main directory and create a config.json under it (for registering the mcp to the framework).<br>
    For each new mcp added, you need to add a command in run.sh of the main directory to start the mcp service.
 
 4. **General Parameter Requirements**  
@@ -61,125 +61,251 @@ mcp_center is used to build the oe intelligent assistant, and its directory stru
 | Category | Details                     |
 |----------|-----------------------------|
 | Name     | servers/remote_info         |
-| Directory| mcp_center/servers/servers/remote_info |
+| Directory| mcp_center/servers/remote_info |
 | Port Used| 12100                       |
 | Introduction | Obtain endpoint information |
 
 | Category | Details                     |
 |----------|-----------------------------|
 | Name     | servers/shell_generator     |
-| Directory| mcp_center/servers/servers/shell_generator |
+| Directory| mcp_center/servers/shell_generator |
 | Port Used| 12101                       |
 | Introduction | Generate & execute shell commands |
+
+| Category | Details                     |
+|----------|-----------------------------|
+| Name     | servers/top     |
+| Directory| mcp_center/servers/top |
+| Port Used| 12110                      |
+| Introduction | Get system load info |
+
+| Category | Details                     |
+|----------|-----------------------------|
+| Name     | servers/kill     |
+| Directory| mcp_center/servers/kill |
+| Port Used| 12111                       |
+| Introduction | Process control & signal meanings |
+
+| Category | Details                     |
+|----------|-----------------------------|
+| Name     | servers/nohup     |
+| Directory| mcp_center/servers/nohup |
+| Port Used| 12112                       |
+| Introduction | Background process execution |
+
+| Category | Details                     |
+|----------|-----------------------------|
+| Name     | servers/strace     |
+| Directory| mcp_center/servers/strace |
+| Port Used| 12113                       |
+| Introduction | Process tracing for anomaly analysis |
+
+| Category | Details                     |
+|----------|-----------------------------|
+| Name     | servers/nvidia     |
+| Directory| mcp_center/servers/nvidia |
+| Port Used| 12114                       |
+| Introduction | mcp_center/servers/nvidia |
 
 | Category | Details |
 |----------|--------------------------|
 | Name | servers/ |
-| Directory | mcp_center/servers/servers/lscpu |
+| Directory | mcp_center/servers/lscpu |
 | Port Occupied | 12202 |
 | Description | Collects static information such as CPU architecture |
 
 | Category | Details |
 |----------|--------------------------|
 | Name | servers/numa_topo |
-| Directory | mcp_center/servers/servers/numa_topo |
+| Directory | mcp_center/servers/numa_topo |
 | Port Occupied | 12203 |
 | Description | Queries NUMA hardware topology and system configuration |
 
 | Category | Details |
 |----------|--------------------------|
 | Name | servers/numa_bind_proc |
-| Directory | mcp_center/servers/servers/numa_bind_proc |
+| Directory | mcp_center/servers/numa_bind_proc |
 | Port Occupied | 12204 |
 | Description | Binds processes to specified NUMA nodes at startup |
 
 | Category | Details |
 |----------|--------------------------|
 | Name | servers/numa_rebind_proc |
-| Directory | mcp_center/servers/servers/numa_rebind_proc |
+| Directory | mcp_center/servers/numa_rebind_proc |
 | Port Occupied | 12205 |
 | Description | Modifies NUMA bindings of already started processes |
 
 | Category | Details |
 |----------|--------------------------|
 | Name | servers/numa_bind_docker |
-| Directory | mcp_center/servers/servers/numa_bind_docker |
+| Directory | mcp_center/servers/numa_bind_docker |
 | Port Occupied | 12206 |
 | Description | Configure NUMA binding for Docker containers |
 
 | Category | Details |
 |----------|--------------------------|
 | Name | servers/numa_perf_compare |
-| Directory | mcp_center/servers/servers/numa_perf_compare |
+| Directory | mcp_center/servers/numa_perf_compare |
 | Port Occupied | 12208 |
 | Description | Control test variables with NUMA binding |
 
 | Category | Details |
 |----------|--------------------------|
 | Name | servers/numa_diagnose |
-| Directory | mcp_center/servers/servers/numa_diagnose |
+| Directory | mcp_center/servers/numa_diagnose |
 | Port Occupied | 12209 |
 | Description | Locate hardware issues with NUMA binding |
 
 | Category | Details |
 |----------|--------------------------|
 | Name | servers/numastat |
-| Directory | mcp_center/servers/servers/numastat |
+| Directory | mcp_center/servers/numastat |
 | Port Occupied | 12210 |
 | Description | View the overall NUMA memory access status of the system |
 
 | Category | Details |
 |----------|--------------------------|
 | Name | servers/numa_cross_node |
-| Directory | mcp_center/servers/servers/numa_cross_node |
+| Directory | mcp_center/servers/numa_cross_node |
 | Port Occupied | 12211 |
 | Description | Identify processes with excessive cross-node memory access |
 
 | Category | Details |
 |----------|--------------------------|
 | Name | servers/numa_container |
-| Directory | mcp_center/servers/servers/numa_container |
+| Directory | mcp_center/servers/numa_container |
 | Port Occupied | 12214 |
 | Description | Monitor NUMA memory access in Docker containers |
 
 | Category | Details |
 |----------|--------------------------|
 | Name | servers/hotspot_trace |
-| Directory | mcp_center/servers/servers/hotspot_trace |
+| Directory | mcp_center/servers/hotspot_trace |
 | Port Occupied | 12216 |
 | Description | Quickly locate CPU performance bottlenecks in systems/processes |
 
 | Category | Details |
 |----------|--------------------------|
 | Name | servers/cache_miss_audit |
-| Directory | mcp_center/servers/servers/cache_miss_audit |
+| Directory | mcp_center/servers/cache_miss_audit |
 | Port Occupied | 12217 |
 | Description | Identify performance losses due to CPU cache misses |
 
 | Category | Details |
 |----------|--------------------------|
 | Name | servers/func_timing_trace |
-| Directory | mcp_center/servers/servers/func_timing_trace |
+| Directory | mcp_center/servers/func_timing_trace |
 | Port Occupied | 12218 |
 | Description | Accurately measure function execution time (including call stack) |
 
 | Category | Details |
 |----------|--------------------------|
 | Name | servers/strace_syscall |
-| Directory | mcp_center/servers/servers/strace_syscall |
+| Directory | mcp_center/servers/strace_syscall |
 | Port Occupied | 12219 |
 | Description | Investigate unreasonable system calls (high frequency / time-consuming) |
 
 | Category | Details |
 |----------|--------------------------|
 | Name | servers/perf_interrupt |
-| Directory | mcp_center/servers/servers/perf_interrupt |
+| Directory | mcp_center/servers/perf_interrupt |
 | Port Occupied | 12220 |
 | Description | Locate CPU usage caused by high-frequency interrupts |
 
 | Category | Details |
 |----------|--------------------------|
 | Name | servers/flame_graph |
-| Directory | mcp_center/servers/servers/flame_graph |
+| Directory | mcp_center/servers/flame_graph |
 | Port Occupied | 12222 |
 | Description | Flame graph generation: Visualize performance bottlenecks |
+
+| Category | Details                     |
+|----------|-----------------------------|
+| Name     | servers/free                |
+| Directory| mcp_center/servers/free     |
+| Port Used| 13100                       |
+| Introduction | Obtain the overall status of system memory |
+
+| Category | Details                     |
+|----------|-----------------------------|
+| Name     | servers/vmstat              |
+| Directory| mcp_center/servers/vmstat   |
+| Port Used| 13101                       |
+| Introduction | Collect information on system resource interaction bottlenecks |
+
+| Category | Details                     |
+|----------|-----------------------------|
+| Name     | servers/sar                 |
+| Directory| mcp_center/servers/sar      |
+| Port Used| 13102                       |
+| Introduction | System resource monitoring and fault diagnosis |
+
+| Category | Details                     |
+|----------|-----------------------------|
+| Name     | servers/sync                |
+| Directory| mcp_center/servers/sync     |
+| Port Used| 13103                       |
+| Introduction | Write memory buffer data to disk |
+
+| Category | Details                     |
+|----------|-----------------------------|
+| Name     | servers/swapon              |
+| Directory| mcp_center/servers/swapon   |
+| Port Used| 13104                       |
+| Introduction | Check the status of swap devices |
+
+| Category | Details                     |
+|----------|-----------------------------|
+| Name     | servers/swapoff             |
+| Directory| mcp_center/servers/swapoff  |
+| Port Used| 13105                       |
+| Introduction | Disable swap devices    |
+
+| Category | Details                     |
+|----------|-----------------------------|
+| Name     | servers/fallocate           |
+| Directory| mcp_center/servers/fallocate|
+| Port Used| 13106                       |
+| Introduction | Temporarily create and enable swap files |
+
+| Category | Details                     |
+|----------|-----------------------------|
+| Name     | servers/find                |
+| Directory| mcp_center/servers/find     |
+| Port Used| 13107                       |
+| Introduction | File Search             |
+
+| Category | Details                     |
+|----------|-----------------------------|
+| Name     | servers/touch               |
+| Directory| mcp_center/servers/touch    |
+| Port Used| 13108                       |
+| Introduction | File Creation and Time Calibration |
+
+| Category | Details                     |
+|----------|-----------------------------|
+| Name     | servers/mkdir               |
+| Directory| mcp_center/servers/mkdir    |
+| Port Used| 13109                       |
+| Introduction | Directory Creation      |
+
+| Category | Details                     |
+|----------|-----------------------------|
+| Name     | servers/rm                  |
+| Directory| mcp_center/servers/rm       |
+| Port Used| 13110                       |
+| Introduction | File Deletion           |
+
+| Category | Details                     |
+|----------|-----------------------------|
+| Name     | servers/mv                  |
+| Directory| mcp_center/servers/mv       |
+| Port Used| 13111                       |
+| Introduction | File move or rename     |
+
+| Category | Details                     |
+|----------|-----------------------------|
+| Name     | servers/ls                  |
+| Directory| mcp_center/servers/ls       |
+| Port Used| 13112                       |
+| Introduction | View directory contents |

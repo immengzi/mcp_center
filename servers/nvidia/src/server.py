@@ -1,13 +1,16 @@
 
 
-
+import netifaces  # 需安装：pip install netifaces
+import socket
 from asyncio.log import logger
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Union
+
+import paramiko
 from config.private.nvidia.config_loader import NvidiaSmiConfig
 from config.public.base_config_loader import LanguageEnum
 from mcp.server import FastMCP
 
-from servers.nvidia.src.base import _format_gpu_info, _get_local_gpu_status, _get_remote_gpu_status, _run_local_nvidia_smi, _run_remote_nvidia_smi
+from servers.nvidia.src.base import _format_gpu_info, _get_local_gpu_status, _get_remote_gpu_status_via_ssh, _run_local_nvidia_smi, _run_remote_nvidia_smi
 
 mcp = FastMCP("Nvidia MCP Server", host="0.0.0.0", port=NvidiaSmiConfig().get_config().private_config.port)
 @mcp.tool(
@@ -86,44 +89,81 @@ mcp = FastMCP("Nvidia MCP Server", host="0.0.0.0", port=NvidiaSmiConfig().get_co
     """
 )
 def nvidia_smi_status(
-    host: Optional[str] = None,
-    port: int = 22,
-    username: Optional[str] = None,
-    password: Optional[str] = None,
+    host: Union[str, None] = None,
     gpu_index: Optional[int] = None,
     include_processes: bool = False
-) -> Dict:
+) -> Dict[str, Any]:
+    """获取GPU状态信息（支持双语提示，严格复刻模板结构）"""
     result = {
         "success": False,
         "message": "",
         "data": {}
     }
+    # 获取当前语言配置（全局复用）
+    lang = NvidiaSmiConfig().get_config().public_config.language
 
-    # 远程查询条件判断
-    if host and (not username or not password):
-        result["message"] = "远程查询需提供username和password" if NvidiaSmiConfig().get_config().public_config.language == LanguageEnum.ZH else "Username and password are required for remote queries"
-        return result
+    # 1. 本地查询分支（host为空）
+    if host is None:
+        try:
+            raw_info = _get_local_gpu_status(gpu_index, include_processes, lang)
+            formatted_data = _format_gpu_info(raw_info, "localhost", include_processes, lang)
 
-    try:
-        # 获取GPU状态信息（本地/远程分支）
-        if host and username and password:
-            # 远程查询
-            raw_info = _get_remote_gpu_status(host, username, password, port, gpu_index, include_processes,NvidiaSmiConfig().get_config().public_config.language)
-            result["message"] = f"成功获取远程主机 {host} 的GPU状态信息" if NvidiaSmiConfig().get_config().public_config.language == LanguageEnum.ZH else f"Successfully obtained GPU status information for remote host {host}"
+            result["success"] = True
+            result["message"] = "成功获取本地主机的GPU状态信息" if lang == LanguageEnum.ZH else "Successfully obtained GPU status information for the local host"
+            result["data"] = formatted_data
+            return result
+        except Exception as e:
+            error_msg = f"获取本地GPU状态信息失败: {str(e)}" if lang == LanguageEnum.ZH else f"Failed to obtain local GPU status information: {str(e)}"
+            result["message"] = error_msg
+            return result
+
+    # 2. 远程查询分支（host不为空）
+    else:
+        for host_config in NvidiaSmiConfig().get_config().public_config.remote_hosts:
+            if host == host_config.name or host == host_config.host:
+                try:
+                    # 建立SSH连接
+                    ssh = paramiko.SSHClient()
+                    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+                    ssh.connect(
+                        hostname=host_config.host,
+                        port=host_config.port,
+                        username=host_config.username,
+                        password=host_config.password
+                    )
+
+                    # 远程查询GPU状态
+                    raw_info = _get_remote_gpu_status_via_ssh(ssh, gpu_index, include_processes, lang)
+                    ssh.close()
+
+                    # 格式化结果
+                    formatted_data = _format_gpu_info(raw_info, host_config.host, include_processes, lang)
+                    result["success"] = True
+                    result["message"] = f"成功获取远程主机 {host_config.host} 的GPU状态信息" if lang == LanguageEnum.ZH else f"Successfully obtained GPU status information for remote host {host_config.host}"
+                    result["data"] = formatted_data
+                    return result
+
+                except paramiko.AuthenticationException:
+                    # 认证失败（双语提示）
+                    if 'ssh' in locals():
+                        ssh.close()
+                    err_msg = "SSH认证失败，请检查用户名和密码" if lang == LanguageEnum.ZH else "SSH authentication failed, please check username and password"
+                    result["message"] = err_msg
+                    return result
+                except Exception as e:
+                    # 其他远程执行异常（双语提示）
+                    if 'ssh' in locals():
+                        ssh.close()
+                    err_msg = f"远程主机 {host_config.host} 查询异常: {str(e)}" if lang == LanguageEnum.ZH else f"Remote host {host_config.host} query error: {str(e)}"
+                    result["message"] = err_msg
+                    return result
+
+        # 未匹配到远程主机（双语异常）
+        if lang == LanguageEnum.ZH:
+            raise ValueError(f"未找到远程主机配置: {host}")
         else:
-            # 本地查询
-            raw_info = _get_local_gpu_status(gpu_index, include_processes,NvidiaSmiConfig().get_config().public_config.language)
-            result["message"] = "成功获取本地主机的GPU状态信息" if NvidiaSmiConfig().get_config().public_config.language == LanguageEnum.ZH else "Successfully obtained GPU status information for the local host"
+            raise ValueError(f"Remote host configuration not found: {host}")
 
-        # 格式化结果
-        result["success"] = True
-        result["data"] = _format_gpu_info(raw_info, host or "localhost", include_processes,NvidiaSmiConfig().get_config().public_config.language)
-
-    except Exception as e:
-        logger.error(f"获取GPU状态信息失败: {str(e)}" if NvidiaSmiConfig().get_config().public_config.language == LanguageEnum.ZH else f"Failed to obtain GPU status information: {str(e)}")
-        result["message"] = f"获取GPU状态信息失败: {str(e)}" if NvidiaSmiConfig().get_config().public_config.language == LanguageEnum.ZH else f"Failed to obtain GPU status information: {str(e)}"
-
-    return result
 
 @mcp.tool(
     name="nvidia_smi_raw_table"
@@ -177,37 +217,71 @@ def nvidia_smi_raw_table(
     username: Optional[str] = None,
     password: Optional[str] = None
 ) -> Dict[str, Any]:
+    """获取nvidia-smi原始表格数据（遵循模板逻辑，支持双语）"""
     # 获取当前语言配置
-    language = "zh" if NvidiaSmiConfig().get_config().public_config.language == LanguageEnum.ZH else "en"
+    lang = NvidiaSmiConfig().get_config().public_config.language
+    language = "zh" if lang == LanguageEnum.ZH else "en"
+
     result = {
         "success": False,
         "message": "",
         "data": {"host": host or "localhost", "raw_table": ""}
     }
 
-    # 远程查询参数校验
-    if host and (not username or not password):
-        result["message"] = "远程查询需提供username和password" if language == "zh" else "Username and password are required for remote queries"
-        return result
-
-    try:
-        # 执行本地/远程命令
-        if host and username and password:
-            raw_table = _run_remote_nvidia_smi(host, username, password, port, language)
-            result["message"] = f"成功获取远程主机 {host} 的nvidia-smi原始表格" if language == "zh" else f"Successfully obtained nvidia-smi raw table from remote host {host}"
-        else:
+    # 1. 本地查询分支（host为空）
+    if host is None:
+        try:
             raw_table = _run_local_nvidia_smi(language)
+            result["success"] = True
             result["message"] = "成功获取本地主机的nvidia-smi原始表格" if language == "zh" else "Successfully obtained nvidia-smi raw table from local host"
+            result["data"]["raw_table"] = raw_table
+            return result
+        except Exception as e:
+            error_msg = f"获取本地nvidia-smi原始表格失败: {str(e)}" if language == "zh" else f"Failed to obtain local nvidia-smi raw table: {str(e)}"
+            result["message"] = error_msg
+            return result
 
-        # 填充结果
-        result["success"] = True
-        result["data"]["raw_table"] = raw_table
+    # 2. 远程查询分支（host不为空）
+    else:
+        # 从配置匹配远程主机信息
+        matched_config = None
+        for host_config in NvidiaSmiConfig().get_config().public_config.remote_hosts:
+            if host == host_config.name or host == host_config.host:
+                matched_config = host_config
+                break
 
-    except Exception as e:
-        error_msg = f"获取nvidia-smi原始表格失败: {str(e)}" if language == "zh" else f"Failed to obtain nvidia-smi raw table: {str(e)}"
-        logger.error(error_msg)
-        result["message"] = error_msg
+        # 未匹配到配置时使用手动传入的认证信息
+        if not matched_config:
+            if not username or not password:
+                result["message"] = "远程查询需提供username和password" if language == "zh" else "Username and password are required for remote queries"
+                return result
+            # 使用手动传入的参数
+            remote_host = host
+            remote_port = port
+            remote_username = username
+            remote_password = password
+        else:
+            # 使用配置中的参数
+            remote_host = matched_config.host
+            remote_port = matched_config.port if matched_config.port else port
+            remote_username = matched_config.username
+            remote_password = matched_config.password
 
+        try:
+            # 执行远程查询
+            raw_table = _run_remote_nvidia_smi(remote_host, remote_username, remote_password, remote_port, language)
+            result["success"] = True
+            result["message"] = f"成功获取远程主机 {remote_host} 的nvidia-smi原始表格" if language == "zh" else f"Successfully obtained nvidia-smi raw table from remote host {remote_host}"
+            result["data"]["raw_table"] = raw_table
+            return result
+        except paramiko.AuthenticationException:
+            err_msg = "SSH认证失败，请检查用户名和密码" if language == "zh" else "SSH authentication failed, please check username and password"
+            result["message"] = err_msg
+            return result
+        except Exception as e:
+            err_msg = f"获取远程nvidia-smi原始表格失败: {str(e)}" if language == "zh" else f"Failed to obtain remote nvidia-smi raw table: {str(e)}"
+            result["message"] = err_msg
+            return result
     return result
 if __name__ == "__main__":
     # Initialize and run the server

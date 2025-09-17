@@ -1,7 +1,7 @@
 {
-    "name": "top命令生成&执行mcp",
-    "overview": "top命令生成&执行mcp",
-    "description": "top命令生成&执行mcp",
+    "name": "top命令获取系统负载信息",
+    "overview": "top命令获取系统负载信息",
+    "description": "top命令获取系统负载信息",
     "mcpType": "sse",
     "config": {
         "url": "http://127.0.0.1:12110/sse"
