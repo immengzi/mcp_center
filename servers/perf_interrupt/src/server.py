@@ -2,16 +2,15 @@ from typing import Union, Dict, Any, List
 import paramiko
 import subprocess
 import re
-import json
 from mcp.server import FastMCP
 from config.public.base_config_loader import LanguageEnum
 from config.private.perf_interrupt.config_loader import PerfInterruptConfig
 
-# 获取配置并初始化MCP服务
+config = PerfInterruptConfig().get_config()
 mcp = FastMCP(
     "Performance Interrupt Health Check MCP Server",
     host="0.0.0.0",
-    port=PerfInterruptConfig().get_config().private_config.port
+    port=config.private_config.port
 )
 
 @mcp.tool(
@@ -42,33 +41,25 @@ mcp = FastMCP(
     '''
 )
 def perf_interrupt_health_check(host: Union[str, None] = None) -> List[Dict[str, Any]]:
-    """
-    检查系统中断统计信息以定位高频中断
-    """
+    """检查系统中断统计信息"""
+    
     def parse_interrupts_output(output: str) -> List[Dict[str, Any]]:
         interrupts = []
-        
-        # 匹配中断行的正则表达式
         pattern = re.compile(
-            r'^\s*(\d+):\s+'  # 中断号
-            r'([0-9\,\s]+)\s+'  # CPU分布
-            r'(\w+-\w+)\s+'  # 中断类型
-            r'(\d+)\s+'  # 中断号后缀
-            r'(.*)'  # 设备名称
-            r'$',
+            r'^\s*(\d+):\s+'       # 中断号
+            r'([0-9,\s]+)\s+'      # CPU分布
+            r'(\S+)\s+'             # 中断类型
+            r'(\S+)\s+'             # 后缀或IRQ号
+            r'(.*)$',               # 设备名称
             re.MULTILINE
         )
-        
         for match in pattern.finditer(output):
             irq_number = match.group(1)
-            cpu_distribution = [int(count.replace(',', '')) for count in match.group(2).split()]
+            cpu_distribution = [int(x.replace(',', '')) for x in match.group(2).split()]
             interrupt_type = match.group(3)
             suffix = match.group(4)
             device = match.group(5).strip()
-            
-            # 计算总中断次数
             total_count = sum(cpu_distribution)
-            
             interrupts.append({
                 'irq_number': f"{irq_number}:{suffix}",
                 'total_count': total_count,
@@ -76,57 +67,60 @@ def perf_interrupt_health_check(host: Union[str, None] = None) -> List[Dict[str,
                 'cpu_distribution': cpu_distribution,
                 'interrupt_type': interrupt_type
             })
-        
-        filtered_interrupts = [
-            irq for irq in interrupts 
-            if irq['total_count'] > 300  # 可配置的过滤阈值
-        ]
-
-        # 按总次数降序排序
-        return sorted(filtered_interrupts, key=lambda x: x['total_count'], reverse=True)
+        # 过滤阈值
+        return sorted([irq for irq in interrupts if irq['total_count'] > 300],
+                      key=lambda x: x['total_count'], reverse=True)
 
     try:
         if host is None:
-            result = subprocess.run(['cat', '/proc/interrupts'], 
-                                  capture_output=True, text=True, check=True)
+            result = subprocess.run(['cat', '/proc/interrupts'],
+                                    capture_output=True, text=True, check=True)
             output = result.stdout
         else:
+            target_host = None
+            for h in config.public_config.remote_hosts:
+                if host.strip() in (h.host, h.name):
+                    target_host = h
+                    break
+            if not target_host:
+                msg = f"未找到远程主机: {host}" if config.public_config.language == LanguageEnum.ZH else f"Remote host not found: {host}"
+                raise ValueError(msg)
+
             client = paramiko.SSHClient()
             client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-            
-            config = PerfInterruptConfig().get_config()
-            username = config.private_config.ssh_username
-            key_file = config.private_config.ssh_key_path
-            port = config.private_config.ssh_port or 22
-
-            client.connect(host, port=port, username=username, key_filename=key_file, timeout=10)
-            stdin, stdout, stderr = client.exec_command('cat /proc/interrupts')
-            output = stdout.read().decode('utf-8')
-            client.close()
+            try:
+                client.connect(
+                    hostname=target_host.host,
+                    port=getattr(target_host, 'port', 22),
+                    username=getattr(target_host, 'username', None),
+                    password=getattr(target_host, 'password', None),
+                    key_filename=getattr(target_host, 'ssh_key_path', None),
+                    timeout=10
+                )
+                stdin, stdout, stderr = client.exec_command('cat /proc/interrupts')
+                stdout.channel.recv_exit_status()
+                output = stdout.read().decode('utf-8')
+                err = stderr.read().decode('utf-8').strip()
+                if err:
+                    raise RuntimeError(err)
+            finally:
+                client.close()
 
         return parse_interrupts_output(output)
 
     except subprocess.CalledProcessError as e:
-        if PerfInterruptConfig().get_config().public_config.language == LanguageEnum.ZH:
-            raise RuntimeError(f"本地中断信息获取失败: {e.stderr}")
-        else:
-            raise RuntimeError(f"Local interrupt info retrieval failed: {e.stderr}")
+        msg = e.stderr or e.stdout or str(e)
+        raise RuntimeError(f"本地中断信息获取失败: {msg}" if config.public_config.language == LanguageEnum.ZH
+                           else f"Local interrupt info retrieval failed: {msg}")
     except paramiko.AuthenticationException:
-        if PerfInterruptConfig().get_config().public_config.language == LanguageEnum.ZH:
-            raise RuntimeError("SSH 认证失败，请检查用户名或密钥")
-        else:
-            raise RuntimeError("SSH authentication failed, please check the username or key")
+        raise RuntimeError("SSH 认证失败，请检查用户名或密钥" if config.public_config.language == LanguageEnum.ZH
+                           else "SSH authentication failed, please check the username or key")
     except paramiko.SSHException as e:
-        if PerfInterruptConfig().get_config().public_config.language == LanguageEnum.ZH:
-            raise RuntimeError(f"SSH 连接错误: {e}")
-        else:
-            raise RuntimeError(f"SSH connection error: {e}")
+        raise RuntimeError(f"SSH 连接错误: {e}" if config.public_config.language == LanguageEnum.ZH
+                           else f"SSH connection error: {e}")
     except Exception as e:
-        if PerfInterruptConfig().get_config().public_config.language == LanguageEnum.ZH:
-            raise RuntimeError(f"获取中断信息失败: {str(e)}")
-        else:
-            raise RuntimeError(f"Failed to retrieve interrupt information: {str(e)}")
+        raise RuntimeError(f"获取中断信息失败: {str(e)}" if config.public_config.language == LanguageEnum.ZH
+                           else f"Failed to retrieve interrupt information: {str(e)}")
 
 if __name__ == "__main__":
-    # 初始化并运行服务器
     mcp.run(transport='sse')
