@@ -96,16 +96,11 @@ def vmstat_collect_tool(host: Union[str, None] = None, options: str = None) -> D
                 'st': int(parts[16])
             }
             return vmstat_output
-        except subprocess.CalledProcessError as e:
-            if VmstatConfig().get_config().public_config.language == LanguageEnum.ZH:
-                raise RuntimeError(f"执行 {command} 命令失败: {e.stderr}") from e
-            else:
-                raise RuntimeError(f"Failed to execute the free command: {e.stderr}") from e
         except Exception as e:
             if VmstatConfig().get_config().public_config.language == LanguageEnum.ZH:
                 raise RuntimeError(f"获取 {command} 输出信息时发生未知错误: {str(e)}") from e
             else:
-                raise RuntimeError(f"An unknown error occurred while obtaining memory information: {str(e)}") from e
+                raise RuntimeError(f"An unknown error occurred while retrieving the output information for {command} : {str(e)}") from e
     else:
         for host_config in VmstatConfig().get_config().public_config.remote_hosts:
             if host == host_config.name or host == host_config.host:
@@ -126,9 +121,9 @@ def vmstat_collect_tool(host: Union[str, None] = None, options: str = None) -> D
 
                     if error:
                         if VmstatConfig().get_config().public_config.language == LanguageEnum.ZH:
-                            raise ValueError(f"命令 {command} 错误：{error}")
+                            raise ValueError(f"执行命令 {command} 错误：{error}")
                         else:
-                            raise ValueError(f"Command {command} error: {error}")
+                            raise ValueError(f"Executing command {command} error: {error}")
 
                     if not output:
                         if VmstatConfig().get_config().public_config.language == LanguageEnum.ZH:
@@ -249,16 +244,11 @@ def vmstat_slabinfo_collect_tool(host: Union[str, None] = None) -> List[Dict[str
                     'pages': int(parts[4])
                 })
             return vmstat_output
-        except subprocess.CalledProcessError as e:
-            if VmstatConfig().get_config().public_config.language == LanguageEnum.ZH:
-                raise RuntimeError(f"执行 {command} 命令失败: {e.stderr}") from e
-            else:
-                raise RuntimeError(f"Failed to execute the free command: {e.stderr}") from e
         except Exception as e:
             if VmstatConfig().get_config().public_config.language == LanguageEnum.ZH:
                 raise RuntimeError(f"获取 {command} 输出信息时发生未知错误: {str(e)}") from e
             else:
-                raise RuntimeError(f"An unknown error occurred while obtaining memory information: {str(e)}") from e
+                raise RuntimeError(f"An unknown error occurred while retrieving the output information for {command} : {str(e)}") from e
     else:
         for host_config in VmstatConfig().get_config().public_config.remote_hosts:
             if host == host_config.name or host == host_config.host:
@@ -279,9 +269,9 @@ def vmstat_slabinfo_collect_tool(host: Union[str, None] = None) -> List[Dict[str
 
                     if error:
                         if VmstatConfig().get_config().public_config.language == LanguageEnum.ZH:
-                            raise ValueError(f"命令 {command} 错误：{error}")
+                            raise ValueError(f"执行命令 {command} 错误：{error}")
                         else:
-                            raise ValueError(f"Command {command} error: {error}")
+                            raise ValueError(f"Executing command {command} error: {error}")
 
                     if not output:
                         if VmstatConfig().get_config().public_config.language == LanguageEnum.ZH:
