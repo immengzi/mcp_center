@@ -18,29 +18,29 @@ mcp = FastMCP(
     if FlameGraphConfig().get_config().public_config.language == LanguageEnum.ZH
     else "flame_graph",
     description='''
-生成CPU火焰图用于性能分析
-1. 输入参数：
-    - host: 远程主机地址（可选）
-    - perf_data_path: perf.data输入路径（必选）
-    - output_path: SVG输出路径（默认：~/cpu_flamegraph.svg）
-    - flamegraph_path: FlameGraph脚本路径（必选）
-2. 返回字段：
-    - svg_path: 生成的火焰图文件路径
-    - status: 生成状态（success/failure）
-    - message: 状态信息
+    生成CPU火焰图用于性能分析
+    1. 输入参数：
+        - host: 远程主机地址（可选）
+        - perf_data_path: perf.data输入路径（必选）
+        - output_path: SVG输出路径（默认：~/cpu_flamegraph.svg）
+        - flamegraph_path: FlameGraph脚本路径（必选）
+    2. 返回字段：
+        - svg_path: 生成的火焰图文件路径
+        - status: 生成状态（success/failure）
+        - message: 状态信息
     '''
     if FlameGraphConfig().get_config().public_config.language == LanguageEnum.ZH
     else '''
-Generate CPU flamegraph for performance analysis
-1. Input parameters:
-    - host: Remote host address (optional)
-    - perf_data_path: perf.data input path (required)
-    - output_path: SVG output path (default: ~/cpu_flamegraph.svg)
-    - flamegraph_path: FlameGraph scripts path (required)
-2. Return fields:
-    - svg_path: Generated flamegraph file path
-    - status: Generation status (success/failure)
-    - message: Status message
+    Generate CPU flamegraph for performance analysis
+    1. Input parameters:
+        - host: Remote host address (optional)
+        - perf_data_path: perf.data input path (required)
+        - output_path: SVG output path (default: ~/cpu_flamegraph.svg)
+        - flamegraph_path: FlameGraph scripts path (required)
+    2. Return fields:
+        - svg_path: Generated flamegraph file path
+        - status: Generation status (success/failure)
+        - message: Status message
     '''
 )
 def flame_graph(

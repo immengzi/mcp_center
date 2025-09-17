@@ -107,9 +107,22 @@ def run_benchmark(benchmark_path: str,
 
 
 @mcp.tool(
-    name="numa_benchmark",
+    name="numa_benchmark"
+    if NumaBenchmarkConfig().get_config().public_config.language == LanguageEnum.ZH
+    else "numa_benchmark",
     description='''
-    Run NUMA benchmark tests with different binding strategies.
+    执行NUMA基准测试，支持不同绑定策略：
+    1. 本地绑定：CPU 和内存在同一节点
+    2. 跨节点绑定：CPU 和内存在不同节点
+    3. 不绑定：使用系统默认行为
+
+    输入参数：
+    - benchmark: 基准测试可执行文件路径（如 /root/mcp_center/stream）
+    - host: 远程主机名称或IP地址（可选）
+    '''
+    if NumaBenchmarkConfig().get_config().public_config.language == LanguageEnum.ZH
+    else '''
+    Run NUMA benchmark tests with different binding strategies:
     1. Local binding: CPU and memory on the same node
     2. Cross-node binding: CPU and memory on different nodes
     3. No binding: Default system behavior
@@ -117,7 +130,7 @@ def run_benchmark(benchmark_path: str,
     Parameters:
     - benchmark: Path to the benchmark executable (e.g., /root/mcp_center/stream)
     - host: Remote host name or IP address (optional)
-        '''
+    '''
 )
 async def numa_benchmark(benchmark: str, host: Union[str, None] = None) -> Dict[str, Any]:
     """执行NUMA基准测试"""

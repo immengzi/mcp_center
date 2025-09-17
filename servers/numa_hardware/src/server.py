@@ -95,7 +95,9 @@ def execute_command(cmd: str, host: Union[str, None] = None) -> str:
         raise
 
 @mcp.tool(
-    name="numa_hardware",
+    name="numa_hardware"
+    if NumaHardwareConfig().get_config().public_config.language == LanguageEnum.ZH
+    else "numa_hardware",
     description='''
     获取NUMA架构硬件监控信息
     1. 输入参数：
@@ -104,6 +106,16 @@ def execute_command(cmd: str, host: Union[str, None] = None) -> str:
         - real_time_frequencies: 各CPU核心实时频率(MHz)
         - specifications: CPU规格信息（型号/频率范围/NUMA节点）
         - numa_topology: NUMA拓扑结构
+    '''
+    if NumaHardwareConfig().get_config().public_config.language == LanguageEnum.ZH
+    else '''
+    Get NUMA hardware monitoring information
+    1. Parameters:
+        - host: Remote host address (optional)
+    2. Return fields:
+        - real_time_frequencies: Real-time frequency of each CPU core (MHz)
+        - specifications: CPU specifications (model/frequency range/NUMA nodes)
+        - numa_topology: NUMA topology
     '''
 )
 def numa_hardware(host: Union[str, None] = None) -> Dict[str, Any]:

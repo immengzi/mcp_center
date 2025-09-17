@@ -163,7 +163,7 @@ async def main() -> None:
     # result = await client.call_tool("perf_events_tool", {})
     # result = await client.call_tool("perf_stat_tool", {"host": "mengzi"})
     # result = await client.call_tool("perf_top_tool", {"host": "mengzi", "pid": 1})
-    # result = await client.call_tool("numa_cross_node", {"host": "mengzi"}) 暂未通过
+    # result = await client.call_tool("numa_cross_node", {"host": "mengzi"})
     # result = await client.call_tool("perf_interrupt_health_check", {"host": "mengzi"})
     # result = await client.call_tool("strace_syscall", {"host": "mengzi", "pid": 1})
     # result = await client.call_tool("flame_graph", {
