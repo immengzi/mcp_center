@@ -1,172 +1,144 @@
-from typing import Union, Dict, Any, List
-import paramiko
+from typing import Dict, Any, Optional, List
 import subprocess
+import tempfile
 import re
 import os
-import json
-import tempfile
+import shlex
+import paramiko
 from mcp.server import FastMCP
 from config.public.base_config_loader import LanguageEnum
 from config.private.func_timing_trace.config_loader import FuncTimingTraceConfig
 
-mcp = FastMCP("Perf Events Tool MCP Server", host="0.0.0.0", port=FuncTimingTraceConfig().get_config().private_config.port)
+mcp = FastMCP(
+    "Function Timing Trace Tool MCP Server",
+    host="0.0.0.0",
+    port=FuncTimingTraceConfig().get_config().private_config.port
+)
 
 @mcp.tool(
     name="func_timing_trace_tool"
     if FuncTimingTraceConfig().get_config().public_config.language == LanguageEnum.ZH
     else "func_timing_trace_tool",
-    description='''
-    通过 perf record 和 perf report 分析系统或指定进程的 CPU 性能瓶颈
-    1. 输入值如下：
-        - host: 远程主机名称或IP地址，若不提供则表示获取本机信息
-        - pid: 要分析的进程ID，若不提供则分析整个系统
-    2. 返回值为包含性能分析结果的字典，包含以下键：
-        - total_samples: 总样本数
-        - event_count: 事件计数（如 cycles）
-        - hot_functions: 热点函数列表（按 Children 百分比排序）
-    '''
+    description="""
+    通过 `perf record -g` 采集指定进程的函数调用栈耗时。
+    参数：
+        pid : 目标进程 PID
+        host : 可选，远程主机 IP/域名；留空则采集本机。
+    返回：
+        dict {
+            "top_functions": List[{
+                "function": str,
+                "self_percent": float,
+                "total_percent": float,
+                "call_stack": List[str]
+            }]
+        }
+    """
     if FuncTimingTraceConfig().get_config().public_config.language == LanguageEnum.ZH
-    else 
-    '''
-    Analyze CPU performance bottlenecks of the system or a specific process using perf record and perf report
-    1. Input values are as follows:
-        - host: Remote host name or IP address. If not provided, retrieves local machine info.
-        - pid: Target process ID. If not provided, analyzes the entire system.
-    2. The return value is a dictionary containing performance analysis results, with the following keys:
-        - total_samples: Total number of samples
-        - event_count: Event count (e.g., cycles)
-        - hot_functions: List of hot functions sorted by Children percentage
-    '''
+    else """
+    Collect function call stack and CPU time via `perf record -g`.
+    Args:
+        pid : Target process PID
+        host : Optional remote IP/hostname; analyse local if omitted.
+    Returns:
+        dict {
+            "top_functions": List[{
+                "function": str,
+                "self_percent": float,
+                "total_percent": float,
+                "call_stack": List[str]
+            }]
+        }
+    """
 )
-def func_timing_trace_tool(host: Union[str, None] = None, pid: Union[int, None] = None) -> Dict[str, Any]:
-    """
-    分析系统或指定进程的 CPU 性能瓶颈
-    """
-    def _parse_size(size_str: str) -> int:
-        units = {"K": 1024, "M": 1024 ** 2, "G": 1024 ** 3, "T": 1024 ** 4}
-        size_str = size_str.upper()
-        for suffix, multi in units.items():
-            if size_str.endswith(suffix):
-                return int(float(size_str[:-1]) * multi)
-        return int(size_str)
+def func_timing_trace_tool(pid: int, host: Optional[str] = None) -> Dict[str, Any]:
+    """采集并解析 perf record 的调用栈耗时"""
+    record_cmd_base = [
+        "perf", "record", "-g", "--call-graph", "dwarf", "-F", "997", "-p", str(pid)
+    ]
+    report_cmd = ["perf", "report", "--no-children", "--stdio"]
 
-    def parse_perf_report(output: str, topk: int = 5) -> Dict[str, Any]:
-        result = {"total_samples": 0, "event_count": 0, "hot_functions": []}
-
-        m = re.search(r"^Samples:\s+([\dKMGT]+)\b", output, re.M)
-        if m:
-            result["total_samples"] = _parse_size(m.group(1))
-
-        m = re.search(r"Event count \(approx\.\):\s+(\d+)", output)
-        if m:
-            result["event_count"] = int(m.group(1))
-
-        header_hit = False
-        for line in output.splitlines():
-            if not line or line.startswith("#"):
-                if "Overhead" in line:
-                    header_hit = True
-                continue
-
-            if header_hit:
-                m = re.match(
-                    r"^\s*(?P<overhead>\d+(?:\.\d+)?)%\s+"
-                    r"(?P<command>\S+)\s+"
-                    r"(?P<so>\S+)\s+"
-                    r"(?P<sym_raw>\[([.\w])\]\s*.+)$",
-                    line
-                )
-                if not m:
-                    continue
-
-                overhead = float(m.group("overhead"))
-                command = m.group("command")
-                so = m.group("so")
-                sym_full = m.group("sym_raw").strip()
-                sym_type, symbol = sym_full[1], sym_full[4:].strip()
-
-                result["hot_functions"].append({
-                    "overhead": overhead,
-                    "command": command,
-                    "shared_object": so,
-                    "symbol": symbol,
-                    "symbol_type": sym_type
-                })
-
-        result["hot_functions"].sort(key=lambda x: x["overhead"], reverse=True)
-        result["hot_functions"] = result["hot_functions"][:topk]
-        return result
+    def parse_report(raw: str) -> Dict[str, Any]:
+        # 宽松正则，匹配 kernel 和用户态函数
+        line_pattern = re.compile(r"^\s*(\d+\.\d+)%.*?(\S+)", re.MULTILINE)
+        functions = []
+        for percent, symbol in line_pattern.findall(raw):
+            if len(functions) >= 10:
+                break
+            functions.append({
+                "function": symbol,
+                "self_percent": float(percent),
+                "total_percent": float(percent),
+                "call_stack": [symbol]
+            })
+        return {"top_functions": functions}
 
     try:
-        perf_record_cmd = ["perf", "record"]
-        if pid:
-            perf_record_cmd.extend(["-p", str(pid)])
-        else:
-            perf_record_cmd.append("-a")
-        perf_record_cmd.extend(["sleep", "10"])
-
-        perf_report_cmd = ["perf", "report", "--stdio"]
-
         if host is None:
-            with tempfile.TemporaryDirectory() as tmpdir:
-                perf_data_path = os.path.join(tmpdir, "perf.data")
+            with tempfile.TemporaryDirectory() as tmp:
+                perf_data_path = os.path.join(tmp, "perf.data")
+                # -o 放在 -- 之前
+                record_cmd_local = record_cmd_base + ["-o", perf_data_path, "--", "sleep", "30"]
 
-                print(f"[Local] Running: {' '.join(perf_record_cmd)}")
-                subprocess.run(perf_record_cmd, check=True)
-
-                print(f"[Local] Running: {' '.join(perf_report_cmd)}")
-                result = subprocess.run(perf_report_cmd, capture_output=True, text=True, check=True)
-                return parse_perf_report(result.stdout)
+                subprocess.run(record_cmd_local, stderr=subprocess.PIPE, stdout=subprocess.PIPE, check=True)
+                report_cmd_local = report_cmd + ["-i", perf_data_path]
+                report_output = subprocess.run(report_cmd_local, capture_output=True, text=True, check=True).stdout
+                return parse_report(report_output)
 
         else:
+            # 远程执行
+            config = FuncTimingTraceConfig().get_config()
+            target_host = None
+            for h in config.public_config.remote_hosts:
+                if host.strip() == h.name or host.strip() == h.host:
+                    target_host = h
+                    break
+            if not target_host:
+                raise ValueError(f"未找到远程主机: {host}" if config.public_config.language == LanguageEnum.ZH
+                                 else f"Remote host not found: {host}")
+
             client = paramiko.SSHClient()
             client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-
-            config = FuncTimingTraceConfig().get_config()
-            username = config.private_config.ssh_username
-            key_file = config.private_config.ssh_key_path
-            port = config.private_config.ssh_port or 22
-
-            client.connect(host, port=port, username=username, key_filename=key_file, timeout=10)
+            client.connect(
+                hostname=target_host.host,
+                port=getattr(target_host, 'port', 22),
+                username=getattr(target_host, 'username', None),
+                password=getattr(target_host, 'password', None),
+                key_filename=getattr(target_host, 'ssh_key_path', None),
+                timeout=10
+            )
 
             stdin, stdout, stderr = client.exec_command("mktemp -d")
             tmpdir = stdout.read().decode("utf-8").strip()
-            perf_data_path = f"{tmpdir}/perf.data"
-
-            print(f"[Remote] Running: {' '.join(perf_record_cmd)} on {host}")
-            stdin, stdout, stderr = client.exec_command(" ".join(perf_record_cmd))
-            stdin.close()
+            perf_data_remote = os.path.join(tmpdir, "perf.data")
+            record_cmd_remote = record_cmd_base + ["-o", perf_data_remote, "--", "sleep", "30"]
+            record_cmd_str = " ".join(shlex.quote(arg) for arg in record_cmd_remote)
+            stdin, stdout, stderr = client.exec_command(record_cmd_str)
             stdout.channel.recv_exit_status()
 
-            print(f"[Remote] Running: {' '.join(perf_report_cmd)} on {host}")
-            stdin, stdout, stderr = client.exec_command(" ".join(perf_report_cmd))
-            output = stdout.read().decode("utf-8")
+            report_cmd_remote = report_cmd + ["-i", perf_data_remote]
+            report_cmd_str = " ".join(shlex.quote(arg) for arg in report_cmd_remote)
+            stdin, stdout, stderr = client.exec_command(report_cmd_str)
+            stdout.channel.recv_exit_status()
+            report_output = stdout.read().decode("utf-8")
             client.close()
 
-            return parse_perf_report(output)
+            return parse_report(report_output)
 
     except subprocess.CalledProcessError as e:
-        if FuncTimingTraceConfig().get_config().public_config.language == LanguageEnum.ZH:
-            raise RuntimeError(f"本地 perf 命令执行失败: {e.stderr}")
-        else:
-            raise RuntimeError(f"Local perf command failed: {e.stderr}")
+        msg = e.stderr or e.stdout or str(e)
+        raise RuntimeError(f"本地 perf 执行失败: {msg}" if FuncTimingTraceConfig().get_config().public_config.language == LanguageEnum.ZH
+                           else f"Local perf execution failed: {msg}")
     except paramiko.AuthenticationException:
-        if FuncTimingTraceConfig().get_config().public_config.language == LanguageEnum.ZH:
-            raise RuntimeError("SSH 认证失败，请检查用户名或密钥")
-        else:
-            raise RuntimeError("SSH authentication failed, please check the username or key")
+        raise RuntimeError("SSH 认证失败，请检查用户名或密钥" if FuncTimingTraceConfig().get_config().public_config.language == LanguageEnum.ZH
+                           else "SSH authentication failed, please check the username or key")
     except paramiko.SSHException as e:
-        if FuncTimingTraceConfig().get_config().public_config.language == LanguageEnum.ZH:
-            raise RuntimeError(f"SSH 连接错误: {e}")
-        else:
-            raise RuntimeError(f"SSH connection error: {e}")
+        raise RuntimeError(f"SSH 连接错误: {e}" if FuncTimingTraceConfig().get_config().public_config.language == LanguageEnum.ZH
+                           else f"SSH connection error: {e}")
     except Exception as e:
-        if FuncTimingTraceConfig().get_config().public_config.language == LanguageEnum.ZH:
-            raise RuntimeError(f"性能分析失败: {str(e)}")
-        else:
-            raise RuntimeError(f"Performance analysis failed: {str(e)}")
+        raise RuntimeError(f"性能分析失败: {str(e)}" if FuncTimingTraceConfig().get_config().public_config.language == LanguageEnum.ZH
+                           else f"Performance analysis failed: {str(e)}")
 
 
 if __name__ == "__main__":
-    # 启动服务
-    mcp.run(transport='sse')
+    mcp.run(transport="sse")

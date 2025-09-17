@@ -1,8 +1,7 @@
-from typing import Union, Dict, Any
+from typing import Union, Dict
 import paramiko
 import subprocess
 import re
-import json
 from mcp.server import FastMCP
 from config.public.base_config_loader import LanguageEnum
 from config.private.numastat.config_loader import NumastatConfig
@@ -40,8 +39,7 @@ mcp = FastMCP("NUMAStat Info MCP Server", host="0.0.0.0", port=NumastatConfig().
         - other_node: Other node access count
     '''
 )
-
-def numastat_info_tool(host: Union[str, None] = None) -> Dict[str, Any]:
+def numastat_info_tool(host: Union[str, None] = None) -> Dict[str, int]:
     """
     使用numastat命令获取本地或远程主机的NUMA统计信息
     """
@@ -54,15 +52,12 @@ def numastat_info_tool(host: Union[str, None] = None) -> Dict[str, Any]:
             'local_node': 0,
             'other_node': 0
         }
-        
-        # 使用正则表达式提取指标和数值
-        pattern = re.compile(r'^\s*(\w+)\s+(\d+)\s*$', re.MULTILINE)
+        pattern = re.compile(r'^\s*(\w+)\s+(\d+)\s*', re.MULTILINE)
         matches = pattern.findall(output)
-        
         for metric, value in matches:
-            if metric in stats:
-                stats[metric] = int(value)
-                
+            metric_key = metric.lower()
+            if metric_key in stats:
+                stats[metric_key] = int(value)
         return stats
 
     try:
@@ -70,26 +65,46 @@ def numastat_info_tool(host: Union[str, None] = None) -> Dict[str, Any]:
             result = subprocess.run(['numastat'], capture_output=True, text=True, check=True)
             output = result.stdout
         else:
+            config = NumastatConfig().get_config()
+            target_host = None
+            for host_cfg in config.public_config.remote_hosts:
+                if host.strip() == host_cfg.name or host.strip() == host_cfg.host:
+                    target_host = host_cfg
+                    break
+
+            if not target_host:
+                if config.public_config.language == LanguageEnum.ZH:
+                    raise ValueError(f"未找到远程主机: {host}")
+                else:
+                    raise ValueError(f"Remote host not found: {host}")
+
             client = paramiko.SSHClient()
             client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-            
-            config = NumastatConfig().get_config()
-            username = config.private_config.ssh_username
-            key_file = config.private_config.ssh_key_path
-            port = config.private_config.ssh_port or 22
+            client.connect(
+                hostname=target_host.host,
+                port=getattr(target_host, 'port', 22),
+                username=getattr(target_host, 'username', None),
+                password=getattr(target_host, 'password', None),
+                key_filename=getattr(target_host, 'ssh_key_path', None),
+                timeout=10
+            )
 
-            client.connect(host, port=port, username=username, key_filename=key_file, timeout=10)
             stdin, stdout, stderr = client.exec_command('numastat')
             output = stdout.read().decode('utf-8')
+            err = stderr.read().decode('utf-8').strip()
             client.close()
+
+            if err:
+                raise RuntimeError(err)
 
         return parse_numastat_output(output)
 
     except subprocess.CalledProcessError as e:
+        msg = e.stderr or e.stdout or str(e)
         if NumastatConfig().get_config().public_config.language == LanguageEnum.ZH:
-            raise RuntimeError(f"本地 numastat 执行失败: {e.stderr}")
+            raise RuntimeError(f"本地 numastat 执行失败: {msg}")
         else:
-            raise RuntimeError(f"Local numastat execution failed: {e.stderr}")
+            raise RuntimeError(f"Local numastat execution failed: {msg}")
     except paramiko.AuthenticationException:
         if NumastatConfig().get_config().public_config.language == LanguageEnum.ZH:
             raise RuntimeError("SSH 认证失败，请检查用户名或密钥")
@@ -106,6 +121,6 @@ def numastat_info_tool(host: Union[str, None] = None) -> Dict[str, Any]:
         else:
             raise RuntimeError(f"Failed to retrieve NUMA statistics: {str(e)}")
 
+
 if __name__ == "__main__":
-    # Initialize and run the server
     mcp.run(transport='sse')
