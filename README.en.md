@@ -114,6 +114,27 @@ mcp_center is used to build the oe intelligent assistant, and its directory stru
 | Port Occupied  | 12125                            |
 | Description    | File Content CRUD Operations     |
 
+| Category       | Details                                          |
+|----------------|--------------------------------------------------|
+| Name           | servers/systrace-mcpserver                       |
+| Directory      | mcp_center/servers/systrace/systrace_mcp         |
+| Port Occupied  | 12145                                            |
+| Description    | Start MCP Server Service                         |
+
+| Category       | Details                                          |
+|----------------|--------------------------------------------------|
+| Name           | servers/systrace-openapi                         |
+| Directory      | mcp_center/servers/systrace/systrace_mcp         |
+| Port Occupied  | 12146                                            |
+| Description    | Start OpenAPI Server Service                     |
+
+| Category       | Details                                          |
+|----------------|--------------------------------------------------|
+| Name           | servers/systrace-mcpserver                       |
+| Directory      | mcp_center/servers/euler-copilot-tune            |
+| Port Occupied  | 12147                                            |
+| Description    | Tuning MCP Service                               |
+
 | Category | Details |
 |----------|--------------------------|
 | Name | servers/ |

@@ -115,6 +115,27 @@ mcp_center 用于构建 oe 智能助手，其目录结构如下：
 
 | 类别   | 详情                     |
 |--------|--------------------------|
+| 名称   | servers/systrace-mcpserver                   |
+| 目录   | mcp_center/servers/systrace/systrace_mcp  |
+| 占用端口 | 12145               |
+| 简介   | 开启MCP Server服务   |
+
+| 类别   | 详情                     |
+|--------|--------------------------|
+| 名称   | servers/ssystrace-openapi                    |
+| 目录   | mcp_center/servers/systrace/systrace_mcp  |
+| 占用端口 | 12146                 |
+| 简介   | 开启OpenAPI Server服务   |
+
+| 类别   | 详情                     |
+|--------|--------------------------|
+| 名称   | servers/systrace-mcpserver                     |
+| 目录   | mcp_center/servers/euler-copilot-tune  |
+| 占用端口 | 12147                 |
+| 简介   |  调优MCP服务   |
+
+| 类别   | 详情                     |
+|--------|--------------------------|
 | 名称   | servers/lscpu                     |
 | 目录   | mcp_center/servers/lscpu  |
 | 占用端口 | 12202                    |
