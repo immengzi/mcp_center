@@ -107,6 +107,13 @@ mcp_center is used to build the oe intelligent assistant, and its directory stru
 | Port Used| 12114                       |
 | Introduction | mcp_center/servers/nvidia |
 
+| Category       | Details                          |
+|----------------|----------------------------------|
+| Name           | servers/file_content_tool        |
+| Directory      | mcp_center/servers/file_content_tool |
+| Port Occupied  | 12125                            |
+| Description    | File Content CRUD Operations     |
+
 | Category | Details |
 |----------|--------------------------|
 | Name | servers/ |
@@ -309,3 +316,73 @@ mcp_center is used to build the oe intelligent assistant, and its directory stru
 | Directory| mcp_center/servers/ls       |
 | Port Used| 13112                       |
 | Introduction | View directory contents |
+
+| Category | Details                              |
+|----------|--------------------------------------|
+| Name     | head                                 |
+| Directory| mcp_center/servers/head              |
+| Port Used     | 13113                                |
+| Introduction | File beginning content viewing tool  |
+
+| Category | Details                              |
+|----------|--------------------------------------|
+| Name     | tail                                 |
+| Directory| mcp_center/servers/tail              |
+| Port Used     | 13114                                |
+| Introduction | File ending content viewing tool      |
+
+| Category | Details                              |
+|----------|--------------------------------------|
+| Name     | cat                                  |
+| Directory| mcp_center/servers/cat               |
+| Port Used     | 13115                                |
+| Introduction | File content viewing tool            |
+
+| Category | Details                              |
+|----------|--------------------------------------|
+| Name     | chown                                |
+| Directory| mcp_center/servers/chown             |
+| Port Used     | 13116                                |
+| Introduction | File owner modification tool         |
+
+| Category | Details                              |
+|----------|--------------------------------------|
+| Name     | chmod                                |
+| Directory| mcp_center/servers/chmod             |
+| Port Used     | 13117                                |
+| Introduction | File permission modification tool    |
+
+| Category | Details                              |
+|----------|--------------------------------------|
+| Name     | tar                                  |
+| Directory| mcp_center/servers/tar               |
+| Port Used     | 13118                                |
+| Introduction | File compression and decompression tool |
+
+| Category | Details                              |
+|----------|--------------------------------------|
+| Name     | zip                                  |
+| Directory| mcp_center/servers/zip               |
+| Port Used     | 13119                                |
+| Introduction | File compression and decompression tool |
+
+| Category | Details                              |
+|----------|--------------------------------------|
+| Name     | grep                                 |
+| Directory| mcp_center/servers/grep              |
+| Port Used     | 13120                                |
+| Introduction | File content search tool             |
+
+| Category | Details                              |
+|----------|--------------------------------------|
+| Name     | sed                                  |
+| Directory| mcp_center/servers/sed               |
+| Port Used     | 13121                                |
+| Introduction | Text processing tool                 |
+
+| Category | Details                              |
+|----------|--------------------------------------|
+| Name     | echo                                 |
+| Directory| mcp_center/servers/echo              |
+| Port Used     | 13125                                |
+| Introduction | Text writing tool                    |
