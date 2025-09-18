@@ -1,0 +1,13 @@
+[Unit]
+Description=A-Ops fail slow detection service
+After=network.target
+
+[Service]
+Type=exec
+Environment=PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python
+ExecStart=/usr/local/bin/systrac-failslow
+Restart=on-failure
+RestartSec=1
+
+[Install]
+WantedBy=multi-user.target

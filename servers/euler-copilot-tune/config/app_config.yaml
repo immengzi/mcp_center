@@ -1,0 +1,81 @@
+mysql:
+  user: "root"
+  password: "123456"
+  config_file: "/etc/my.cnf"
+  port: 3306
+  set_param_template: 'grep -q "^$param_name\\s*=" "$config_file" && sed -i "s/^$param_name\\s*=.*/$param_name = $param_value/" "$config_file" || sed -i "/\\[mysqld\\]/a $param_name = $param_value" "$config_file"'
+  get_param_template: 'grep -E "^$param_name\s*=" $config_file | cut -d= -f2- | xargs'
+  stop_workload: "systemctl stop mysqld"
+  start_workload: "systemctl start mysqld"
+  benchmark: "$EXECUTE_MODE:local sh $SCRIPTS_DIR/mysql/parse_benchmark.sh $host_ip $port $user $password"
+  performance_metric: "QPS"
+
+flink:
+  set_param_template: 'sh /home/wsy/set_param.sh $param_name $param_value'
+  get_param_template: 'sh /home/wsy/get_param.sh $param_name'
+  benchmark: "sh /home/wsy/nexmark_test.sh"
+  stop_workload: 'docker exec -i flink_jm_8c32g bash -c "source /etc/profile && /usr/local/flink-1.16.3/bin/stop-cluster.sh && /usr/local/nexmark/bin/shutdown_cluster.sh"'
+  start_workload: 'docker exec -i flink_jm_8c32g bash -c "source /etc/profile && /usr/local/flink-1.16.3/bin/start-cluster.sh"'
+  performance_metric: "THROUGHPUT"
+
+pgsql:
+  user: "postgres"
+  password: "postgres"
+  config_file: "/data/data1/pgsql/postgresql.conf"
+  port: 5432
+  set_param_template: 'grep -qE "^\s*$param_name\s*=" "$config_file" && sed -i "s/^[[:space:]]*$param_name[[:space:]]*=.*/$param_name = $param_value/" "$config_file" || echo "$param_name = $param_value" >> "$config_file"'
+  get_param_template: 'grep -oP "^\s*$param_name\s*=\s*\K.*" "$config_file"'
+  stop_workload: "su - postgres -c '/usr/local/pgsql/bin/pg_ctl stop -D /data/data1/pgsql/ -m fast'"
+  start_workload: "su - postgres -c '/usr/local/pgsql/bin/pg_ctl start -D /data/data1/pgsql/ -l /var/log/postgresql/postgresql.log'"
+  benchmark: "$EXECUTE_MODE:local sh $SCRIPTS_DIR/postgresql/parse_benchmark.sh $host_ip $port $user $password"
+  performance_metric: "QPS"
+
+spark:
+  set_param_template: 'sh /path/of/set_param.sh $param_name $param_value'
+  get_param_template: 'sh /path/of/get_param.sh $param_name'
+  benchmark: "sh /path/of/spark_benchmark.sh"
+  performance_metric: "DURATION"
+
+nginx:
+  port: 10000
+  config_file: "/usr/local/nginx/conf/nginx.conf"
+  set_param_template: 'grep -q "^\\s*$param_name\\s\\+" "$config_file" && sed -i "s|^\\s*$param_name\\s\\+.*|    $param_name $param_value;|" "$config_file" || sed -i "/http\\s*{/a\    $param_name $param_value;" "$config_file"'
+  get_param_template: 'grep -E "^\\s*$param_name\\s+" $config_file | head -1 | sed -E "s/^\\s*$param_name\\s+(.*);/\\1/"'
+  stop_workload: "/usr/local/nginx/sbin/nginx -s reload"
+  start_workload: "/usr/local/nginx/sbin/nginx -s reload"
+  benchmark: "$EXECUTE_MODE:local sh $SCRIPTS_DIR/nginx/parse_benchmark.sh $host_ip $port"
+  performance_metric: "QPS"
+
+ceph:
+  set_param_template: 'ceph config set osd "$param_name" "$param_value"'
+  get_param_template: 'sh /path/of/get_params.sh'
+  start_workload: "sh /path/of/restart_ceph.sh"
+  benchmark: "$EXECUTE_MODE:local sh $SCRIPTS_DIR/ceph/parse_benchmark.sh"
+  performance_metric: "BANDWIDTH"
+
+gaussdb:
+  user: ""
+  password: ""
+  config_file: "/path/of/config_file"
+  port: 5432
+  set_param_template: 'gs_guc set -Z datanode  -N all -I all -c "${param_name}=${param_value}"'
+  get_param_template: 'gs_guc check -Z datanode -N all -I all -c "${param_name}"'
+  stop_workload: "cm_ctl stop -m i"
+  start_workload: "cm_ctl start"
+  recover_workload: "$EXECUTE_MODE:local sh /path/of/gaussdb_cluster_recover.sh"
+  benchmark: "$EXECUTE_MODE:local sh/path/of/gaussdb_benchmark.sh"
+  performance_metric: "DURATION"
+
+system:
+  set_param_template: 'sysctl -w $param_name=$param_value'
+  get_param_template: 'sysctl $param_name'
+
+redis:
+  port: 6379
+  config_file: "/etc/redis.conf"
+  set_param_template: "sed -i 's/^$param_name/$param_name $param_value/g' $config_file"
+  get_param_template: "grep -P '$param_name' $config_file | awk '{print $2}"
+  start_workload: "systemctl start redis"
+  stop_workload: "systemctl stop redis"
+  benchmark: "$EXECUTE_MODE:local sh $SCRIPTS_DIR/redis/parse_benchmark.sh $host_ip $port "
+  performance_metric: "QPS"
