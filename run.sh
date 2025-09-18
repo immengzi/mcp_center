@@ -10,6 +10,7 @@ for service_file in "$SERVICE_DIR"/*.service; do
   fi
 done
 
+pip install -r requiremenets.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
 
 SCRIPT_PATH=$(cd $(dirname $0) && pwd)
 echo "当前脚本所在目录: $SCRIPT_PATH"

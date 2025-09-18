@@ -1,8 +1,4 @@
 
-
-import netifaces  # 需安装：pip install netifaces
-import socket
-from asyncio.log import logger
 from typing import Any, Dict, Optional, Union
 
 import paramiko
