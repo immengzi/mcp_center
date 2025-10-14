@@ -206,6 +206,13 @@ mcp_center 用于构建 oe 智能助手，其目录结构如下：
 
 | 类别   | 详情                     |
 |--------|--------------------------|
+| 名称   | servers/file_transfer                    |
+| 目录   | mcp_center/servers/file_transfer  |
+| 占用端口 | 12136                 |
+| 简介   | 文件传输/下载   |
+
+| 类别   | 详情                     |
+|--------|--------------------------|
 | 名称   | servers/systrace-mcpserver                   |
 | 目录   | mcp_center/servers/systrace/systrace_mcp  |
 | 占用端口 | 12145               |

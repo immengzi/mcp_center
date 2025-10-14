@@ -205,6 +205,13 @@ mcp_center is used to build the oe intelligent assistant, and its directory stru
 | Port Used| 12135                         |
 | Introduction | Nmap IP Scanning Tool |
 
+| Category | Details                       |
+|----------|-------------------------------|
+| Name     | servers/file_transfer                    |
+| Directory| mcp_center/servers/file_transfer         |
+| Port Used| 12136                         |
+| Introduction | File Transfer/Download  |
+
 | Category       | Details                                          |
 |----------------|--------------------------------------------------|
 | Name           | servers/systrace-mcpserver                       |
