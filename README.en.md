@@ -107,12 +107,103 @@ mcp_center is used to build the oe intelligent assistant, and its directory stru
 | Port Used| 12114                       |
 | Introduction | mcp_center/servers/nvidia |
 
-| Category       | Details                          |
-|----------------|----------------------------------|
-| Name           | servers/file_content_tool        |
-| Directory      | mcp_center/servers/file_content_tool |
-| Port Occupied  | 12125                            |
-| Description    | File Content CRUD Operations     |
+| Category   | Details                     |
+|------------|------------------------------|
+| Name       | servers/npu                  |
+| Directory  | mcp_center/servers/npu       |
+| Port Used  | 12115                        |
+| Description| Query and control of NPU     |
+
+| Category   | Details                  |
+|------------|--------------------------|
+| Name       | servers/iftop            |
+| Directory  | mcp_center/servers/iftop |
+| Port Used  | 12116                    |
+| Description| Network traffic monitoring |
+
+| Category | Details                       |
+|----------|-------------------------------|
+| Name     | servers/nload                 |
+| Directory| mcp_center/servers/nload      |
+| Port Used| 12117                         |
+| Introduction | Nload Bandwidth Monitoring |
+
+| Category | Details                       |
+|----------|-------------------------------|
+| Name     | servers/netstat               |
+| Directory| mcp_center/servers/netstat    |
+| Port Used| 12118                         |
+| Introduction | netstat Network Connection Monitoring |
+
+| Category | Details                       |
+|----------|-------------------------------|
+| Name     | servers/lsof                  |
+| Directory| mcp_center/servers/lsof       |
+| Port Used| 12119                         |
+| Introduction | Quickly troubleshoot file occupation conflicts, abnormal network connections and process resource occupation issues |
+
+| Category | Details                       |
+|----------|-------------------------------|
+| Name     | servers/ifconfig              |
+| Directory| mcp_center/servers/ifconfig   |
+| Port Used| 12120                         |
+| Introduction | ifconfig Network Interface Information Monitoring |
+
+| Category | Details                       |
+|----------|-------------------------------|
+| Name     | servers/ethtool               |
+| Directory| mcp_center/servers/ethtool    |
+| Port Used| 12121                         |
+| Introduction | ethtool Network Card Information Query, Feature Status and Network Card Settings |
+
+| Category | Details                       |
+|----------|-------------------------------|
+| Name     | servers/tshark                |
+| Directory| mcp_center/servers/tshark     |
+| Port Used| 12122                         |
+| Introduction | Capture, Display and Analyze Network Traffic |
+
+| Category | Details                       |
+|----------|-------------------------------|
+| Name     | servers/file_content_tool     |
+| Directory| mcp_center/servers/file_content_tool |
+| Port Used| 12125                         |
+| Introduction | File Content Creation, Deletion, Modification and Query |
+
+| Category | Details                       |
+|----------|-------------------------------|
+| Name     | servers/firewalld             |
+| Directory| mcp_center/servers/firewalld  |
+| Port Used| 12130                         |
+| Introduction | Firewalld Network Firewall Management Tool |
+
+| Category | Details                       |
+|----------|-------------------------------|
+| Name     | servers/iptable               |
+| Directory| mcp_center/servers/iptable    |
+| Port Used| 12131                         |
+| Introduction | iptables Firewall Management Tool |
+
+| Category | Details                       |
+|----------|-------------------------------|
+| Name     | servers/docker                |
+| Directory| mcp_center/servers/docker     |
+| Port Used| 12133                         |
+| Introduction | docker Tool |
+
+| Category | Details                       |
+|----------|-------------------------------|
+| Name     | servers/qemu                  |
+| Directory| mcp_center/servers/qemu       |
+| Port Used| 12134                         |
+| Introduction | Qemu Virtual Machine Management Tool |
+
+| Category | Details                       |
+|----------|-------------------------------|
+| Name     | servers/nmap                  |
+| Directory| mcp_center/servers/nmap       |
+| Port Used| 12135                         |
+| Introduction | Nmap IP Scanning Tool |
 
 | Category       | Details                                          |
 |----------------|--------------------------------------------------|
