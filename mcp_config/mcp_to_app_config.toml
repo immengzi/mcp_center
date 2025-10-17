@@ -1,57 +1,176 @@
-# 智能体群核心：全能型助手
 [[applications]]
 appType = "agent"
-name = "OE-运维助手"
-description = "全能型系统助手。核心功能：系统综合状态洞察（CPU/内存/负载/GPU）、文件与目录管理（增删改查、压缩、搜索）、进程基础管理（查看、结束）。"
-mcpPath = [ "remote_info_mcp", "shell_generator_mcp","top_mcp", "free_mcp", "vmstat_mcp", "nvidia_mcp", "ls_mcp", "file_content_tool_mcp", "find_mcp", "grep_mcp", "rm_mcp", "mv_mcp", "mkdir_mcp", "tar_mcp", "zip_mcp", "kill_mcp","nohup_mcp","strace_mcp", "sar_mcp", "sync_mcp", "swapon_mcp", "swapoff_mcp", "fallocate_mcp",]
+name = "OE-智能运维助手"
+description = "提供通用系统运维能力，含网络监控、性能分析、硬件信息查询、存储管理等功能"
+mcpPath = [
+"remote_info_mcp",
+"shell_generator_mcp",
+"kill_mcp",
+"nohup_mcp",
+"strace_mcp",
+"top_mcp",
+"iftop_mcp",
+"nload_mcp",
+"netstat_mcp",
+"lsof_mcp",
+"ifconfig_mcp",
+"ethtool_mcp",
+"tshark_mcp",
+"file_content_tool_mcp",
+"firewalld_mcp",
+"iptable_mcp",
+"nmap_mcp",
+"file_transfer_mcp",
+"lscpu_mcp",
+"perf_interrupt_mcp",
+"flame_graph_mcp",
+"free_mcp",
+"sync_mcp",
+"swapon_mcp",
+"swapoff_mcp",
+"fallocate_mcp",
+"find_mcp",
+"touch_mcp",
+"mkdir_mcp",
+"rm_mcp",
+"mv_mcp",
+"ls_mcp",
+"head_mcp",
+"tail_mcp",
+"cat_mcp",
+"chmod_mcp",
+"chown_mcp",
+"tar_mcp",
+"zip_mcp",
+"grep_mcp",
+"sed_mcp",
+"echo_mcp"
+]
 published = true
 
 [[applications]]
 appType = "agent"
-name = "AI慢节点检测助手"
-description = "systrace运维助手,用于分析ai训练情况"
-mcpPath = [ "shell_generator_mcp","systrace_mcp",]
+name = "OE-智算调优助手"
+description = "面向AI/GPU/NPU智算场景，提供异构硬件监控、系统追踪、智算任务调优能力"
+mcpPath = [
+"shell_generator_mcp",
+"kill_mcp",
+"nohup_mcp",
+"strace_mcp",
+"top_mcp",
+"nvidia_mcp",
+"npu_mcp",
+"file_content_tool_mcp",
+"firewalld_mcp",
+"iptable_mcp",
+"file_transfer_mcp",
+"sync_mcp",
+"find_mcp",
+"touch_mcp",
+"mkdir_mcp",
+"rm_mcp",
+"mv_mcp",
+"ls_mcp",
+"systrace_mcp",
+"head_mcp",
+"tail_mcp",
+"cat_mcp",
+"chmod_mcp",
+"chown_mcp",
+"tar_mcp",
+"zip_mcp",
+"grep_mcp",
+"sed_mcp",
+"echo_mcp"
+]
 published = true
 
 [[applications]]
 appType = "agent"
-name = "OE-智能调优助手"
-description = "调优助手,用于分析系统情况进行调优"
-mcpPath = [ "shell_generator_mcp","tune_mcp",]
+name = "OE-通算调优助手"
+description = "针对通用计算场景（尤其NUMA架构），提供NUMA优化、热点追踪、缓存分析、系统性能调优能力"
+mcpPath = [
+"shell_generator_mcp",
+"remote_info_mcp",
+"kill_mcp",
+"nohup_mcp",
+"strace_mcp",
+"top_mcp",
+"file_content_tool_mcp",
+"firewalld_mcp",
+"iptable_mcp",
+"file_transfer_mcp",
+"lscpu_mcp",
+"numa_topo_mcp",
+"numa_bind_proc_mcp",
+"numa_rebind_proc_mcp",
+"numa_perf_compare_mcp",
+"numa_diagnose_mcp",
+"numastat_mcp",
+"numa_cross_node_mcp",
+"numa_container_mcp",
+"hotspot_trace_mcp",
+"cache_miss_audit_mcp",
+"func_timing_trace_mcp",
+"strace_syscall_mcp",
+"perf_interrupt_mcp",
+"flame_graph_mcp",
+"free_mcp",
+"vmstat_mcp",
+"sar_mcp",
+"sync_mcp",
+"find_mcp",
+"touch_mcp",
+"mkdir_mcp",
+"rm_mcp",
+"mv_mcp",
+"ls_mcp",
+"euler-copilot-tune_mcp",
+"head_mcp",
+"tail_mcp",
+"cat_mcp",
+"chmod_mcp",
+"chown_mcp",
+"tar_mcp",
+"zip_mcp",
+"grep_mcp",
+"sed_mcp",
+"echo_mcp"
+]
 published = true
 
-
-
-# 专精型智能体：性能诊断医师
 [[applications]]
 appType = "agent"
-name = "OE-PerfDoctor"
-description = "性能深度诊断专家。专注于：NUMA架构分析与绑定优化（拓扑、绑核、跨节点访问诊断）、CPU性能剖析（热点、缓存命中、火焰图）、系统调用与中断分析。"
-mcpPath = [ "lscpu_mcp", "numa_topo_mcp", "numastat_mcp", "numa_cross_node_mcp", "hotspot_trace_mcp", "cache_miss_audit_mcp", "flame_graph_mcp", "strace_syscall_mcp", "perf_interrupt_mcp", "func_timing_trace_mcp"]
-published = true
-
-
-
-# 专精型智能体：文件系统专家
-[[applications]]
-appType = "agent"
-name = "OE-FileMaster"
-description = "文件系统管理大师。提供所有文件操作：高级查找与内容处理（find, grep, sed）、权限与所有权管理（chmod, chown）、文件创建与查看（touch, cat, head, tail, echo）。"
-mcpPath = [ "find_mcp", "grep_mcp", "sed_mcp", "chmod_mcp", "chown_mcp", "touch_mcp", "cat_mcp", "head_mcp", "tail_mcp", "echo_mcp", "file_content_tool_mcp", "ls_mcp", "rm_mcp", "mv_mcp"]
-published = true
-
-# 专精型智能体：NUMA与硬件优化专家
-[[applications]]
-appType = "agent"
-name = "OE-NUMAExpert"
-description = "NUMA架构与硬件绑定专家。深度功能：NUMA进程绑定（启动时绑定、运行时重绑定）、Docker容器NUMA控制、NUMA性能对比测试与硬件问题诊断。"
-mcpPath = [ "numa_topo_mcp", "numa_bind_proc_mcp", "numa_rebind_proc_mcp", "numa_bind_docker_mcp", "numa_perf_compare_mcp", "numa_diagnose_mcp", "numastat_mcp", "numa_container_mcp"]
-published = true
-
-# 基础型智能体：Shell命令生成与执行
-[[applications]]
-appType = "agent"
-name = "OE-ShellHelper"
-description = "Shell命令助手。核心功能：生成并执行所需的Shell命令、获取远程端点信息。适合快速执行简单任务或作为其他智能体的补充。"
-mcpPath = [ "shell_generator_mcp", "remote_info_mcp"]
+name = "OE-容器镜像助手"
+description = "提供容器与虚拟化环境管理能力，含Docker操作、QEMU虚拟化、容器NUMA绑定、镜像运维等功能"
+mcpPath = [
+"shell_generator_mcp",
+"remote_info_mcp",
+"kill_mcp",
+"strace_mcp",
+"file_content_tool_mcp",
+"firewalld_mcp",
+"iptable_mcp",
+"docker_mcp",
+"qemu_mcp",
+"file_transfer_mcp",
+"numa_bind_docker_mcp",
+"sync_mcp",
+"find_mcp",
+"touch_mcp",
+"mkdir_mcp",
+"rm_mcp",
+"mv_mcp",
+"ls_mcp",
+"head_mcp",
+"tail_mcp",
+"cat_mcp",
+"chmod_mcp",
+"chown_mcp",
+"tar_mcp",
+"zip_mcp",
+"grep_mcp",
+"sed_mcp",
+"echo_mcp"
+]
 published = true
