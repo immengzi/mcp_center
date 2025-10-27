@@ -3,6 +3,7 @@ from asyncio.log import logger
 import logging
 
 
+import re
 import subprocess
 from typing import Dict, List, Optional, Any
 
@@ -10,23 +11,19 @@ import paramiko
 import psutil
 
 from config.private.kill.config_loader import KillCommandConfig
-from config.public.base_config_loader import LanguageEnum
 from mcp.server import FastMCP
+
+from servers.kill.src.base import _exec_local_signal_query, _exec_remote_signal_query, _format_raw_signals, create_ssh_connection, execute_local_command, execute_remote_command, get_language
 
 # 初始化日志（使用仓库默认配置）
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
-
-def get_language_config() -> bool:
-    """获取语言配置（True为中文，False为英文）"""
-    return KillCommandConfig().get_config().public_config.language == LanguageEnum.ZH
 
 
 # 声明FastMCP实例（仓库核心规范）
 mcp = FastMCP("kill MCP Server", host="0.0.0.0", port=KillCommandConfig().get_config().private_config.port)
 @mcp.tool(
-    name="pause_process" if get_language_config() else "pause_process",
+    name="pause_process" if get_language() else "pause_process",
     description="""
     通过kill指令暂停进程（远程操作需目标主机在配置中存在）
     1. 输入参数：
@@ -36,7 +33,7 @@ mcp = FastMCP("kill MCP Server", host="0.0.0.0", port=KillCommandConfig().get_co
         - success：布尔值，操作是否成功
         - message：字符串，操作结果描述
         - data：字典，包含操作的host和pid
-    """ if get_language_config() else """
+    """ if get_language() else """
     Pause process via kill command (remote host must exist in configuration)
     1. Input parameters:
         - pid: PID of process to pause (required, positive integer)
@@ -60,7 +57,7 @@ def pause_process(
             "pid": pid
         }
     }
-    is_zh = get_language_config()
+    is_zh = get_language()
 
     # 1. 参数校验
     if not isinstance(pid, int) or pid <= 0:
@@ -151,7 +148,7 @@ def pause_process(
         return result
 
 @mcp.tool(
-    name="resume_process" if get_language_config() else "resume_process",
+    name="resume_process" if get_language() else "resume_process",
     description=
     """
     通过kill指令来恢复进程（支持本地/远程，发送SIGCONT信号）
@@ -171,7 +168,7 @@ def pause_process(
             - pid：本次恢复的进程PID
     
     """
-    if get_language_config() else
+    if get_language() else
     """
     Resume process (supports local/remote, sends SIGCONT signal). 
     Sends SIGCONT signal via kill command to resume a paused process, 
@@ -200,7 +197,7 @@ def resume_process(
     password: str = ""
 ) -> Dict:
     """恢复进程工具（严格遵循模板逻辑：配置检索优先，返回值结构统一）"""
-    is_zh = get_language_config()
+    is_zh = get_language()
     
     # 初始化返回结果（与模板完全一致的结构）
     result = {
@@ -339,7 +336,7 @@ def resume_process(
 
 
 @mcp.tool(
-    name="get_kill_signals" if get_language_config() else "get_kill_signals",
+    name="get_kill_signals" if get_language() else "get_kill_signals",
     description=
     """
     查看本地或远程服务器的kill信号量含义（远程需提供SSH信息）。返回系统支持的所有kill信号及其描述，包括信号编号、名称和功能说明。
@@ -364,7 +361,7 @@ def resume_process(
                 - name：信号名称（如"SIGTERM"）
                 - description：信号功能说明   
     """
-    if get_language_config() else
+    if get_language() else
     """
     Signal query tool supporting local and remote servers
     
@@ -396,7 +393,7 @@ def get_kill_signals(
     password: Optional[str] = None
 ) -> Dict:
     """查询kill信号量工具（严格遵循模板逻辑：配置检索优先，返回值结构统一）"""
-    is_zh = get_language_config()
+    is_zh = get_language()
 
     # 初始化返回结果（与模板完全一致的结构）
     result = {
@@ -473,145 +470,262 @@ def get_kill_signals(
 
     return result
 
-
-# -------------------------- 私有辅助函数（拆分逻辑，提升可读性） --------------------------
-def _exec_local_signal_query() -> str:
-    """执行本地kill信号量查询（通过kill -l命令）"""
-    # 使用kill -l命令获取信号列表，-v参数显示详细描述（部分系统支持）
-    try:
-        # 优先尝试带详细描述的命令（如Linux）
-        result = subprocess.run(
-            ["kill", "-lv"],  # -l显示信号列表，-v显示详细描述
-            check=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            encoding="utf-8"
-        )
-        return result.stdout
-    except subprocess.CalledProcessError:
-        # 若不支持-v参数，退化为仅获取信号列表（如macOS）
-        result = subprocess.run(
-            ["kill", "-l"],
-            check=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            encoding="utf-8"
-        )
-        return result.stdout
-
-
-def _exec_remote_signal_query(host: str, port: int, username: str, password: str) -> str:
-    """执行远程kill信号量查询（通过SSH）"""
-    ssh = paramiko.SSHClient()
-    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    try:
-        # 建立SSH连接
-        ssh.connect(
-            hostname=host,
-            port=port,
-            username=username,
-            password=password,
-            timeout=10
-        )
-
-        # 执行远程命令（逻辑同本地，优先带详细描述）
-        try:
-            stdin, stdout, stderr = ssh.exec_command("kill -lv")
-            exit_code = stdout.channel.recv_exit_status()
-            if exit_code != 0:
-                raise subprocess.CalledProcessError(exit_code, "kill -lv", stderr.read())
-            return stdout.read().decode("utf-8")
-        except Exception:
-            # 退化为仅获取信号列表
-            stdin, stdout, stderr = ssh.exec_command("kill -l")
-            exit_code = stdout.channel.recv_exit_status()
-            if exit_code != 0:
-                raise subprocess.CalledProcessError(exit_code, "kill -l", stderr.read())
-            return stdout.read().decode("utf-8")
-    finally:
-        # 确保SSH连接关闭
-        ssh.close()
-
-
-def _format_raw_signals(raw_signals: str, is_zh: bool) -> List[Dict]:
-    """格式化原始信号量输出为结构化列表（支持中英文描述）"""
-    signal_list = []
-    # 信号描述映射（覆盖常见信号，统一中英文）
-    signal_desc_map = {
-        "SIGHUP": {"zh": "挂起信号（终端关闭时发送）", "en": "Hangup (sent when terminal is closed)"},
-        "SIGINT": {"zh": "中断信号（Ctrl+C触发）", "en": "Interrupt (triggered by Ctrl+C)"},
-        "SIGQUIT": {"zh": "退出信号（Ctrl+\\触发，产生core dump）", "en": "Quit (triggered by Ctrl+\\, generates core dump)"},
-        "SIGILL": {"zh": "非法指令信号（程序执行非法机器码）", "en": "Illegal instruction (program executes invalid machine code)"},
-        "SIGTRAP": {"zh": "陷阱信号（调试时触发断点）", "en": "Trace trap (triggered by breakpoints during debugging)"},
-        "SIGABRT": {"zh": "中止信号（abort()函数触发）", "en": "Abort (triggered by abort() function)"},
-        "SIGBUS": {"zh": "总线错误信号（内存访问错误）", "en": "Bus error (memory access error)"},
-        "SIGFPE": {"zh": "浮点异常信号（除零、溢出等）", "en": "Floating-point exception (division by zero, overflow, etc.)"},
-        "SIGKILL": {"zh": "强制终止信号（无法忽略，必杀死进程）", "en": "Kill (cannot be ignored, forces process termination)"},
-        "SIGUSR1": {"zh": "用户自定义信号1（用户程序可自定义处理）", "en": "User-defined signal 1 (custom handling by user program)"},
-        "SIGSEGV": {"zh": "段错误信号（非法内存访问）", "en": "Segmentation fault (invalid memory access)"},
-        "SIGUSR2": {"zh": "用户自定义信号2（用户程序可自定义处理）", "en": "User-defined signal 2 (custom handling by user program)"},
-        "SIGPIPE": {"zh": "管道破裂信号（向关闭的管道写数据）", "en": "Broken pipe (writing to a closed pipe)"},
-        "SIGALRM": {"zh": "闹钟信号（alarm()函数触发）", "en": "Alarm (triggered by alarm() function)"},
-        "SIGTERM": {"zh": "终止信号（默认kill命令信号，可被忽略）", "en": "Terminate (default kill command signal, can be ignored)"},
-        "SIGSTKFLT": {"zh": "栈溢出信号（栈空间不足）", "en": "Stack fault (insufficient stack space)"},
-        "SIGCHLD": {"zh": "子进程状态变化信号（子进程退出/暂停时发送）", "en": "Child status change (sent when child exits/pauses)"},
-        "SIGCONT": {"zh": "继续信号（恢复暂停的进程）", "en": "Continue (resumes a paused process)"},
-        "SIGSTOP": {"zh": "停止信号（暂停进程，无法忽略）", "en": "Stop (pauses process, cannot be ignored)"},
-        "SIGTSTP": {"zh": "终端停止信号（Ctrl+Z触发，可被忽略）", "en": "Terminal stop (triggered by Ctrl+Z, can be ignored)"},
-        "SIGTTIN": {"zh": "后台进程读终端信号（后台进程尝试读终端时发送）", "en": "Background read from terminal (sent when background process tries to read terminal)"},
-        "SIGTTOU": {"zh": "后台进程写终端信号（后台进程尝试写终端时发送）", "en": "Background write to terminal (sent when background process tries to write terminal)"},
-        "SIGURG": {"zh": "紧急数据信号（socket收到紧急数据）", "en": "Urgent data (socket receives urgent data)"},
-        "SIGXCPU": {"zh": "CPU时间超限信号（进程超过CPU时间限制）", "en": "CPU time limit exceeded (process exceeds CPU time limit)"},
-        "SIGXFSZ": {"zh": "文件大小超限信号（进程超过文件大小限制）", "en": "File size limit exceeded (process exceeds file size limit)"},
-        "SIGVTALRM": {"zh": "虚拟时钟信号（虚拟时间超时）", "en": "Virtual timer alarm (virtual time timeout)"},
-        "SIGPROF": {"zh": "性能分析时钟信号（ profiling 时间超时）", "en": "Profiling timer alarm (profiling time timeout)"},
-        "SIGWINCH": {"zh": "窗口大小变化信号（终端窗口大小改变时发送）", "en": "Window size change (sent when terminal window size changes)"},
-        "SIGIO": {"zh": "I/O就绪信号（I/O操作就绪时发送）", "en": "I/O ready (sent when I/O operation is ready)"},
-        "SIGPWR": {"zh": "电源故障信号（系统电源异常时发送）", "en": "Power failure (sent when system power is abnormal)"},
-        "SIGSYS": {"zh": "非法系统调用信号（调用不存在的系统调用）", "en": "Bad system call (calling a non-existent system call)"}
+@mcp.tool(
+    name="kill_process" if get_language() else "kill_process",
+    description="""
+    通过kill命令发送信号终止进程（支持本地/远程）
+    
+    参数:
+        -pid: 进程PID（正整数，必填）
+        -signal: 信号量（可选，默认SIGTERM(15)，常用值：9(SIGKILL)、15(SIGTERM)）
+        -host: 远程主机名/IP（本地操作可不填）
+    
+    返回:
+        -success: 操作是否成功
+        -message: 结果描述
+        -data: 包含操作详情的字典
+    """ if get_language() else """
+    Terminate process by sending signal via kill command (supports local/remote)
+    
+    Parameters:
+        -pid: Process PID (positive integer, required)
+        -signal: Signal number (optional, default SIGTERM(15), common values: 9(SIGKILL), 15(SIGTERM))
+        -host: Remote hostname/IP (optional for local operation)
+    
+    Returns:
+        -success: Whether the operation is successful
+        -message: Result description
+        -data: Dictionary containing operation details
+    """
+)
+def kill_process(pid: int, signal: int = 15, host: str = "") -> Dict:
+    is_zh = get_language()
+    result: Dict = {
+        "success": False,
+        "message": "",
+        "data": {
+            "pid": pid,
+            "signal": signal,
+            "host": host or "localhost"
+        }
     }
 
-    # 解析原始输出（处理两种格式：1. " 1) SIGHUP"  2. "HUP 1"）
-    for line in raw_signals.strip().splitlines():
-        line = line.strip()
-        if not line:
-            continue
-        # 格式1：信号编号在前（如 " 1) SIGHUP"）
-        if ")" in line:
-            parts = line.split(")")
-            if len(parts) < 2:
-                continue
-            num_str = parts[0].strip()
-            name = parts[1].strip().split()[0]  # 避免包含额外描述
-        # 格式2：信号名称在前（如 "HUP 1"）
+    # 参数校验
+    if not isinstance(pid, int) or pid <= 0:
+        result["message"] = "PID必须是正整数" if is_zh else "PID must be a positive integer"
+        return result
+
+    if not isinstance(signal, int) or signal < 1 or signal > 64:
+        result["message"] = "信号量必须是1-64之间的整数" if is_zh else "Signal must be an integer between 1-64"
+        return result
+
+    # 构建命令
+    command = f"kill -{signal} {pid}"
+
+    # 执行命令（本地/远程）
+    if not host or host in ["localhost", "127.0.0.1"]:
+        # 本地操作
+        success, stdout, stderr = execute_local_command(command)
+        if success:
+            result["success"] = True
+            result["message"] = f"已向进程{pid}发送信号{signal}" if is_zh else f"Sent signal {signal} to process {pid}"
         else:
-            parts = line.split()
-            if len(parts) < 2:
-                continue
-            # 判断哪部分是数字（处理 "SIG1" 或 "1" 格式）
-            if parts[0].startswith("SIG"):
-                name = parts[0]
-                num_str = parts[1]
-            else:
-                name = f"SIG{parts[0]}" if not parts[0].startswith("SIG") else parts[0]
-                num_str = parts[1]
+            result["message"] = f"操作失败: {stderr}" if is_zh else f"Operation failed: {stderr}"
+    else:
+        # 远程操作
+        ssh = create_ssh_connection(host)
+        if not ssh:
+            result["message"] = f"无法连接到远程主机{host}" if is_zh else f"Failed to connect to remote host {host}"
+            return result
 
-        # 转换信号编号为整数
         try:
-            number = int(num_str)
-        except ValueError:
-            continue
+            success, stdout, stderr = execute_remote_command(ssh, command)
+            if success and not stderr:
+                result["success"] = True
+                result["message"] = f"已向远程主机{host}的进程{pid}发送信号{signal}" if is_zh else f"Sent signal {signal} to process {pid} on {host}"
+            else:
+                result["message"] = f"远程操作失败: {stderr}" if is_zh else f"Remote operation failed: {stderr}"
+        finally:
+            try:
+                ssh.close()
+            except Exception as e:
+                logger.warning(f"关闭SSH连接失败: {str(e)}")
 
-        # 获取信号描述（无匹配时显示默认信息）
-        desc = signal_desc_map.get(name, {"zh": "未定义信号", "en": "Undefined signal"})
-        signal_list.append({
-            "number": number,
-            "name": name,
-            "description": desc["zh"] if is_zh else desc["en"]
-        })
+    return result
 
-    # 按信号编号排序
-    return sorted(signal_list, key=lambda x: x["number"])
+
+@mcp.tool(
+    name="check_process_status" if get_language() else "check_process_status",
+    description="""
+    检查进程是否存在（支持本地/远程）
+    
+    参数:
+        -pid: 进程PID（正整数，必填）
+        -host: 远程主机名/IP（本地操作可不填）
+    
+    返回:
+        -success: 查询是否成功
+        -message: 结果描述
+        -data: 包含进程状态的字典
+    """ if get_language() else """
+    Check if process exists (supports local/remote)
+    
+    Parameters:
+        -pid: Process PID (positive integer, required)
+        -host: Remote hostname/IP (optional for local operation)
+    
+    Returns:
+        -success: Whether the query is successful
+        -message: Result description
+        -data: Dictionary containing process status
+    """
+)
+def check_process_status(pid: int, host: str = "") -> Dict:
+    is_zh = get_language()
+    result: Dict = {
+        "success": False,
+        "message": "",
+        "data": {
+            "pid": pid,
+            "host": host or "localhost",
+            "exists": False,
+            "name": ""
+        }
+    }
+
+    # 参数校验
+    if not isinstance(pid, int) or pid <= 0:
+        result["message"] = "PID必须是正整数" if is_zh else "PID must be a positive integer"
+        return result
+
+    # 构建命令
+    command = f"ps -p {pid} -o comm="  # 获取进程名
+
+    # 执行命令（本地/远程）
+    if not host or host in ["localhost", "127.0.0.1"]:
+        success, stdout, stderr = execute_local_command(command)
+        if success:
+            result["success"] = True
+            result["data"]["exists"] = len(stdout) > 0
+            result["data"]["name"] = stdout.strip() if stdout else ""
+            result["message"] = f"进程{pid} {'存在' if result['data']['exists'] else '不存在'}" if is_zh else f"Process {pid} {'exists' if result['data']['exists'] else 'does not exist'}"
+        else:
+            result["message"] = f"查询失败: {stderr}" if is_zh else f"Query failed: {stderr}"
+    else:
+        ssh = create_ssh_connection(host)
+        if not ssh:
+            result["message"] = f"无法连接到远程主机{host}" if is_zh else f"Failed to connect to remote host {host}"
+            return result
+
+        try:
+            success, stdout, stderr = execute_remote_command(ssh, command)
+            if success:
+                result["success"] = True
+                result["data"]["exists"] = len(stdout) > 0
+                result["data"]["name"] = stdout.strip() if stdout else ""
+                result["message"] = f"远程主机{host}的进程{pid} {'存在' if result['data']['exists'] else '不存在'}" if is_zh else f"Process {pid} on {host} {'exists' if result['data']['exists'] else 'does not exist'}"
+            else:
+                result["message"] = f"远程查询失败: {stderr}" if is_zh else f"Remote query failed: {stderr}"
+        finally:
+            try:
+                ssh.close()
+            except Exception as e:
+                logger.warning(f"关闭SSH连接失败: {str(e)}")
+
+    return result
+
+
+@mcp.tool(
+    name="get_signal_info" if get_language() else "get_signal_info",
+    description="""
+    获取系统支持的信号量信息（支持本地/远程）
+    
+    参数:
+        -host: 远程主机名/IP（本地查询可不填）
+    
+    返回:
+        -success: 查询是否成功
+        -message: 结果描述
+        -data: 包含信号量信息的字典
+    """ if get_language() else """
+    Get system-supported signal information (supports local/remote)
+    
+    Parameters:
+        -host: Remote hostname/IP (optional for local query)
+    
+    Returns:
+        -success: Whether the query is successful
+        -message: Result description
+        -data: Dictionary containing signal information
+    """
+)
+def get_signal_info(host: str = "") -> Dict:
+    is_zh = get_language()
+    result: Dict = {
+        "success": False,
+        "message": "",
+        "data": {
+            "host": host or "localhost",
+            "signals": []
+        }
+    }
+
+    # 执行命令获取信号信息
+    command = "kill -l | cat -n | awk '{print $1-1 \":\" $2}' | grep -E '^[0-9]+:[A-Z]+'"
+    
+    if not host or host in ["localhost", "127.0.0.1"]:
+        success, stdout, stderr = execute_local_command(command)
+    else:
+        ssh = create_ssh_connection(host)
+        if not ssh:
+            result["message"] = f"无法连接到远程主机{host}" if is_zh else f"Failed to connect to remote host {host}"
+            return result
+
+        try:
+            success, stdout, stderr = execute_remote_command(ssh, command)
+        finally:
+            try:
+                ssh.close()
+            except Exception as e:
+                logger.warning(f"关闭SSH连接失败: {str(e)}")
+
+    # 解析结果
+    if success and stdout:
+        signal_pattern = re.compile(r'^(\d+):([A-Z]+)$')
+        signals: List[Dict] = []
+        for line in stdout.split('\n'):
+            line = line.strip()
+            match = signal_pattern.match(line)
+            if match:
+                num = int(match.group(1))
+                name = match.group(2)
+                # 补充常用信号描述
+                descriptions = {
+                    9: "强制终止进程（不可捕获）",
+                    15: "优雅终止进程（默认信号，可捕获）",
+                    18: "恢复暂停的进程（SIGCONT）",
+                    19: "暂停进程（SIGSTOP，不可捕获）"
+                }
+                en_descriptions = {
+                    9: "Force terminate process (uncatchable)",
+                    15: "Gracefully terminate process (default, catchable)",
+                    18: "Resume paused process (SIGCONT)",
+                    19: "Pause process (SIGSTOP, uncatchable)"
+                }
+                desc = descriptions.get(num, "") if is_zh else en_descriptions.get(num, "")
+                signals.append({
+                    "number": num,
+                    "name": name,
+                    "description": desc
+                })
+        result["data"]["signals"] = signals
+        result["success"] = True
+        result["message"] = f"共查询到{len(signals)}个信号量" if is_zh else f"Found {len(signals)} signals"
+    else:
+        result["message"] = f"查询信号量失败: {stderr}" if is_zh else f"Failed to query signals: {stderr}"
+
+    return result
+
 if __name__ == "__main__":
     # Initialize and run the server
     mcp.run(transport='sse')
