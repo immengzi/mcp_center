@@ -66,7 +66,7 @@ def sar_cpu_collect_tool(host: Union[str, None] = None, interval: int = None, co
                     # 表头/空行和Avg行跳过
                     continue
                 try:
-                    datetime.strptime(parts[0], "%H:%M:%S")
+                    datetime.datetime.strptime(parts[0], "%H:%M:%S")
                     float(parts[3])
                 except ValueError:
                     continue
@@ -98,7 +98,7 @@ def sar_cpu_collect_tool(host: Union[str, None] = None, interval: int = None, co
                         username=host_config.username,
                         password=host_config.password
                     )
-                    command = f'sar -u'
+                    command = 'sar -u'
                     if interval is not None:
                         command += f' {interval}'
                     if count is not None:
@@ -127,7 +127,7 @@ def sar_cpu_collect_tool(host: Union[str, None] = None, interval: int = None, co
                             # 表头/空行和Avg行跳过
                             continue
                         try:
-                            datetime.strptime(parts[0], "%H:%M:%S")
+                            datetime.datetime.strptime(parts[0], "%H:%M:%S")
                             float(parts[3])
                         except ValueError:
                             continue
@@ -225,7 +225,7 @@ def sar_memory_collect_tool(host: Union[str, None] = None, interval: int = None,
                 if len(parts) < 13:
                     continue
                 try:
-                    datetime.strptime(parts[0], "%H:%M:%S")
+                    datetime.datetime.strptime(parts[0], "%H:%M:%S")
                     int(parts[2])
                 except ValueError:
                     continue
@@ -262,7 +262,7 @@ def sar_memory_collect_tool(host: Union[str, None] = None, interval: int = None,
                         username=host_config.username,
                         password=host_config.password
                     )
-                    command = f'sar -r'
+                    command = 'sar -r'
                     if interval is not None:
                         command += f' {interval}'
                     if count is not None:
@@ -290,7 +290,7 @@ def sar_memory_collect_tool(host: Union[str, None] = None, interval: int = None,
                         if len(parts) < 13:
                             continue
                         try:
-                            datetime.strptime(parts[0], "%H:%M:%S")
+                            datetime.datetime.strptime(parts[0], "%H:%M:%S")
                             int(parts[2])
                         except ValueError:
                             continue
@@ -424,7 +424,7 @@ def sar_disk_collect_tool(host: Union[str, None] = None, interval: int = None, c
                         username=host_config.username,
                         password=host_config.password
                     )
-                    command = f'sar -d'
+                    command = 'sar -d'
                     if interval is not None:
                         command += f' {interval}'
                     if count is not None:
@@ -452,7 +452,7 @@ def sar_disk_collect_tool(host: Union[str, None] = None, interval: int = None, c
                         if len(parts) < 11:
                             continue
                         try:
-                            datetime.strptime(parts[0], "%H:%M:%S")
+                            datetime.datetime.strptime(parts[0], "%H:%M:%S")
                             float(parts[3])
                         except ValueError:
                             continue
@@ -550,7 +550,7 @@ def sar_network_collect_tool(host: Union[str, None] = None, interval: int = None
                     # raise ValueError(f"{command} 命令输出字段不足，无法提取所需信息")
                     continue
                 try:
-                    datetime.strptime(parts[0], "%H:%M:%S")
+                    datetime.datetime.strptime(parts[0], "%H:%M:%S")
                     float(parts[3])
                 except ValueError:
                     continue
@@ -585,7 +585,7 @@ def sar_network_collect_tool(host: Union[str, None] = None, interval: int = None
                         username=host_config.username,
                         password=host_config.password
                     )
-                    command = f'sar -n DEV'
+                    command = 'sar -n DEV'
                     if interval is not None:
                         command += f' {interval}'
                     if count is not None:
@@ -614,7 +614,7 @@ def sar_network_collect_tool(host: Union[str, None] = None, interval: int = None
                             # raise ValueError(f"{command} 命令输出字段不足，无法提取所需信息")
                             continue
                         try:
-                            datetime.strptime(parts[0], "%H:%M:%S")
+                            datetime.datetime.strptime(parts[0], "%H:%M:%S")
                             float(parts[3])
                         except ValueError:
                             continue
@@ -708,15 +708,15 @@ def sar_cpu_historicalinfo_collect_tool(host: Union[str, None] = None, file: str
             command.append('-e')
             command.append(endtime)
             try:
-                datetime.strptime(starttime, "%H:%M:%S")
-                datetime.strptime(endtime, "%H:%M:%S")
+                datetime.datetime.strptime(starttime, "%H:%M:%S")
+                datetime.datetime.strptime(endtime, "%H:%M:%S")
             except ValueError:
                 if SarConfig().get_config().public_config.language == LanguageEnum.ZH:
                     raise ValueError("时间格式错误，应为HH:MM:SS")
                 else:
                     raise ValueError("Time format error, should be HH:MM:SS")
-            start_dt = datetime.strptime(starttime, '%H:%M:%S').time()
-            end_dt = datetime.strptime(endtime, '%H:%M:%S').time()
+            start_dt = datetime.datetime.strptime(starttime, '%H:%M:%S').time()
+            end_dt = datetime.datetime.strptime(endtime, '%H:%M:%S').time()
             if start_dt >= end_dt:
                 if SarConfig().get_config().public_config.language == LanguageEnum.ZH:
                     raise ValueError("开始时间必须早于结束时间")
@@ -731,7 +731,7 @@ def sar_cpu_historicalinfo_collect_tool(host: Union[str, None] = None, file: str
                     # 表头/空行和Avg行跳过
                     continue
                 try:
-                    datetime.strptime(parts[0], "%H:%M:%S")
+                    datetime.datetime.strptime(parts[0], "%H:%M:%S")
                     float(parts[3])
                 except ValueError:
                     continue
@@ -765,15 +765,15 @@ def sar_cpu_historicalinfo_collect_tool(host: Union[str, None] = None, file: str
                     )
                     command = f'sar -u -f {file} -s {starttime} -e {endtime}'
                     try:
-                        datetime.strptime(starttime, "%H:%M:%S")
-                        datetime.strptime(endtime, "%H:%M:%S")
+                        datetime.datetime.strptime(starttime, "%H:%M:%S")
+                        datetime.datetime.strptime(endtime, "%H:%M:%S")
                     except ValueError:
                         if SarConfig().get_config().public_config.language == LanguageEnum.ZH:
                             raise ValueError("时间格式错误，应为HH:MM:SS")
                         else:
                             raise ValueError("Time format error, should be HH:MM:SS")
-                    start_dt = datetime.strptime(starttime, '%H:%M:%S').time()
-                    end_dt = datetime.strptime(endtime, '%H:%M:%S').time()
+                    start_dt = datetime.datetime.strptime(starttime, '%H:%M:%S').time()
+                    end_dt = datetime.datetime.strptime(endtime, '%H:%M:%S').time()
                     if start_dt >= end_dt:
                         if SarConfig().get_config().public_config.language == LanguageEnum.ZH:
                             raise ValueError("开始时间必须早于结束时间")
@@ -803,7 +803,7 @@ def sar_cpu_historicalinfo_collect_tool(host: Union[str, None] = None, file: str
                             # 表头/空行和Avg行跳过
                             continue
                         try:
-                            datetime.strptime(parts[0], "%H:%M:%S")
+                            datetime.datetime.strptime(parts[0], "%H:%M:%S")
                             float(parts[3])
                         except ValueError:
                             continue
@@ -905,15 +905,15 @@ def sar_memory_historicalinfo_collect_tool(host: Union[str, None] = None, file: 
             command.append('-e')
             command.append(endtime)
             try:
-                datetime.strptime(starttime, "%H:%M:%S")
-                datetime.strptime(endtime, "%H:%M:%S")
+                datetime.datetime.strptime(starttime, "%H:%M:%S")
+                datetime.datetime.strptime(endtime, "%H:%M:%S")
             except ValueError:
                 if SarConfig().get_config().public_config.language == LanguageEnum.ZH:
                     raise ValueError("时间格式错误，应为HH:MM:SS")
                 else:
                     raise ValueError("Time format error, should be HH:MM:SS")
-            start_dt = datetime.strptime(starttime, '%H:%M:%S').time()
-            end_dt = datetime.strptime(endtime, '%H:%M:%S').time()
+            start_dt = datetime.datetime.strptime(starttime, '%H:%M:%S').time()
+            end_dt = datetime.datetime.strptime(endtime, '%H:%M:%S').time()
             if start_dt >= end_dt:
                 if SarConfig().get_config().public_config.language == LanguageEnum.ZH:
                     raise ValueError("开始时间必须早于结束时间")
@@ -927,7 +927,7 @@ def sar_memory_historicalinfo_collect_tool(host: Union[str, None] = None, file: 
                 if len(parts) < 13:
                     continue
                 try:
-                    datetime.strptime(parts[0], "%H:%M:%S")
+                    datetime.datetime.strptime(parts[0], "%H:%M:%S")
                     int(parts[2])
                 except ValueError:
                     continue
@@ -966,15 +966,15 @@ def sar_memory_historicalinfo_collect_tool(host: Union[str, None] = None, file: 
                     )
                     command = f'sar -r -f {file} -s {starttime} -e {endtime}'
                     try:
-                        datetime.strptime(starttime, "%H:%M:%S")
-                        datetime.strptime(endtime, "%H:%M:%S")
+                        datetime.datetime.strptime(starttime, "%H:%M:%S")
+                        datetime.datetime.strptime(endtime, "%H:%M:%S")
                     except ValueError:
                         if SarConfig().get_config().public_config.language == LanguageEnum.ZH:
                             raise ValueError("时间格式错误，应为HH:MM:SS")
                         else:
                             raise ValueError("Time format error, should be HH:MM:SS")
-                    start_dt = datetime.strptime(starttime, '%H:%M:%S').time()
-                    end_dt = datetime.strptime(endtime, '%H:%M:%S').time()
+                    start_dt = datetime.datetime.strptime(starttime, '%H:%M:%S').time()
+                    end_dt = datetime.datetime.strptime(endtime, '%H:%M:%S').time()
                     if start_dt >= end_dt:
                         if SarConfig().get_config().public_config.language == LanguageEnum.ZH:
                             raise ValueError("开始时间必须早于结束时间")
@@ -1104,15 +1104,15 @@ def sar_disk_historicalinfo_collect_tool(host: Union[str, None] = None, file: st
             command.append('-e')
             command.append(endtime)
             try:
-                datetime.strptime(starttime, "%H:%M:%S")
-                datetime.strptime(endtime, "%H:%M:%S")
+                datetime.datetime.strptime(starttime, "%H:%M:%S")
+                datetime.datetime.strptime(endtime, "%H:%M:%S")
             except ValueError:
                 if SarConfig().get_config().public_config.language == LanguageEnum.ZH:
                     raise ValueError("时间格式错误，应为HH:MM:SS")
                 else:
                     raise ValueError("Time format error, should be HH:MM:SS")
-            start_dt = datetime.strptime(starttime, '%H:%M:%S').time()
-            end_dt = datetime.strptime(endtime, '%H:%M:%S').time()
+            start_dt = datetime.datetime.strptime(starttime, '%H:%M:%S').time()
+            end_dt = datetime.datetime.strptime(endtime, '%H:%M:%S').time()
             if start_dt >= end_dt:
                 if SarConfig().get_config().public_config.language == LanguageEnum.ZH:
                     raise ValueError("开始时间必须早于结束时间")
@@ -1163,15 +1163,15 @@ def sar_disk_historicalinfo_collect_tool(host: Union[str, None] = None, file: st
                     )
                     command = f'sar -d -f {file} -s {starttime} -e {endtime}'
                     try:
-                        datetime.strptime(starttime, "%H:%M:%S")
-                        datetime.strptime(endtime, "%H:%M:%S")
+                        datetime.datetime.strptime(starttime, "%H:%M:%S")
+                        datetime.datetime.strptime(endtime, "%H:%M:%S")
                     except ValueError:
                         if SarConfig().get_config().public_config.language == LanguageEnum.ZH:
                             raise ValueError("时间格式错误，应为HH:MM:SS")
                         else:
                             raise ValueError("Time format error, should be HH:MM:SS")
-                    start_dt = datetime.strptime(starttime, '%H:%M:%S').time()
-                    end_dt = datetime.strptime(endtime, '%H:%M:%S').time()
+                    start_dt = datetime.datetime.strptime(starttime, '%H:%M:%S').time()
+                    end_dt = datetime.datetime.strptime(endtime, '%H:%M:%S').time()
                     if start_dt >= end_dt:
                         if SarConfig().get_config().public_config.language == LanguageEnum.ZH:
                             raise ValueError("开始时间必须早于结束时间")
@@ -1200,7 +1200,7 @@ def sar_disk_historicalinfo_collect_tool(host: Union[str, None] = None, file: st
                         if len(parts) < 11:
                             continue
                         try:
-                            datetime.strptime(parts[0], "%H:%M:%S")
+                            datetime.datetime.strptime(parts[0], "%H:%M:%S")
                             float(parts[3])
                         except ValueError:
                             continue
@@ -1299,15 +1299,15 @@ def sar_network_historicalinfo_collect_tool(host: Union[str, None] = None, file:
             command.append('-e')
             command.append(endtime)
             try:
-                datetime.strptime(starttime, "%H:%M:%S")
-                datetime.strptime(endtime, "%H:%M:%S")
+                datetime.datetime.strptime(starttime, "%H:%M:%S")
+                datetime.datetime.strptime(endtime, "%H:%M:%S")
             except ValueError:
                 if SarConfig().get_config().public_config.language == LanguageEnum.ZH:
                     raise ValueError("时间格式错误，应为HH:MM:SS")
                 else:
                     raise ValueError("Time format error, should be HH:MM:SS")
-            start_dt = datetime.strptime(starttime, '%H:%M:%S').time()
-            end_dt = datetime.strptime(endtime, '%H:%M:%S').time()
+            start_dt = datetime.datetime.strptime(starttime, '%H:%M:%S').time()
+            end_dt = datetime.datetime.strptime(endtime, '%H:%M:%S').time()
             if start_dt >= end_dt:
                 if SarConfig().get_config().public_config.language == LanguageEnum.ZH:
                     raise ValueError("开始时间必须早于结束时间")
@@ -1321,7 +1321,7 @@ def sar_network_historicalinfo_collect_tool(host: Union[str, None] = None, file:
                 if len(parts) < 11:
                     continue
                 try:
-                    datetime.strptime(parts[0], "%H:%M:%S")
+                    datetime.datetime.strptime(parts[0], "%H:%M:%S")
                     float(parts[3])
                 except ValueError:
                     continue
@@ -1358,15 +1358,15 @@ def sar_network_historicalinfo_collect_tool(host: Union[str, None] = None, file:
                     )
                     command = f'sar -n DEV -f {file} -s {starttime} -e {endtime}'
                     try:
-                        datetime.strptime(starttime, "%H:%M:%S")
-                        datetime.strptime(endtime, "%H:%M:%S")
+                        datetime.datetime.strptime(starttime, "%H:%M:%S")
+                        datetime.datetime.strptime(endtime, "%H:%M:%S")
                     except ValueError:
                         if SarConfig().get_config().public_config.language == LanguageEnum.ZH:
                             raise ValueError("时间格式错误，应为HH:MM:SS")
                         else:
                             raise ValueError("Time format error, should be HH:MM:SS")
-                    start_dt = datetime.strptime(starttime, '%H:%M:%S').time()
-                    end_dt = datetime.strptime(endtime, '%H:%M:%S').time()
+                    start_dt = datetime.datetime.strptime(starttime, '%H:%M:%S').time()
+                    end_dt = datetime.datetime.strptime(endtime, '%H:%M:%S').time()
                     if start_dt >= end_dt:
                         if SarConfig().get_config().public_config.language == LanguageEnum.ZH:
                             raise ValueError("开始时间必须早于结束时间")
@@ -1395,7 +1395,7 @@ def sar_network_historicalinfo_collect_tool(host: Union[str, None] = None, file:
                         if len(parts) < 11:
                             continue
                         try:
-                            datetime.strptime(parts[0], "%H:%M:%S")
+                            datetime.datetime.strptime(parts[0], "%H:%M:%S")
                             float(parts[3])
                         except ValueError:
                             continue
