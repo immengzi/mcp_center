@@ -1,9 +1,6 @@
 import logging
-
 from typing import Dict, Optional
-
 from mcp.server import FastMCP
-
 from config.private.npu.config_loader import NpuSmiConfig
 from servers.npu.src.base import execute_local_command, execute_remote_command, get_language, get_remote_auth, parse_npu_info
 
@@ -314,3 +311,8 @@ def reset_npu_device(
             result["message"] = f"重置远程NPU设备失败: {exec_result['error']}" if is_zh else f"Failed to reset remote NPU device: {exec_result['error']}"
     
     return result
+
+
+if __name__ == "__main__":
+    # Initialize and run the server
+    mcp.run(transport='sse')

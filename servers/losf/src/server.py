@@ -1,9 +1,6 @@
 import logging
-
 from typing import Dict
-
 from mcp.server import FastMCP
-
 from config.private.lsof.config_loader import LsofConfig
 from servers.losf.src.base import execute_local_command, execute_remote_command, get_language, get_remote_auth, parse_lsof_file_output, parse_lsof_network_output
 
@@ -325,3 +322,6 @@ def find_process_by_file(
             result["message"] = f"查找{host}上打开{path}的进程失败：{exec_result['error']}" if is_zh else f"Failed to find processes opening {path} on {host}: {exec_result['error']}"
 
     return result
+
+if __name__ == "__main__":
+    mcp.run(transport="sse")

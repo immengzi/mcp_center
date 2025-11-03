@@ -1,7 +1,6 @@
 import logging
-
 from config.private.iptables.config_loader import IptablesConfig
-from .base import get_language, get_remote_auth, execute_remote_command, execute_local_command, parse_iptables_rules, parse_nat_rules
+from servers.iptables.src.base import get_language, get_remote_auth, execute_remote_command, execute_local_command, parse_iptables_rules, parse_nat_rules
 import re
 from typing import Dict 
 
@@ -478,4 +477,6 @@ def enable_ip_forward(
         result["message"] = f"{'' if enable else '禁用'}IP转发失败：{'; '.join(error_msg)}" if is_zh else f"Failed to {'enable' if enable else 'disable'} IP forwarding: {'; '.join(error_msg)}"
 
     return result
-    
+
+if __name__ == "__main__":
+    mcp.run(transport="sse")

@@ -1,7 +1,6 @@
 import logging
 from mcp.server import FastMCP
 from typing import Dict
-
 from config.private.ethtool.config_loader import EthtoolConfig
 from servers.ethtool.src.base import get_language, get_remote_auth, execute_remote_command, execute_local_command, parse_ethtool_basic, parse_ethtool_features
 
@@ -327,3 +326,8 @@ def set_interface_speed(
             result["message"] = f"设置{host}的网卡{iface}失败：{exec_result['error']}" if is_zh else f"Failed to set interface {iface} on {host}: {exec_result['error']}"
 
     return result
+
+if __name__ == "__main__":
+    # Initialize and run the server
+    mcp.run(transport='sse')
+    

@@ -1,5 +1,4 @@
 import logging
-
 from typing import Dict
 from config.private.ifconfig.config_loader import IfconfigConfig
 from servers.ifconfig.src.base import execute_local_command, execute_remote_command, get_language, get_remote_auth, parse_ifconfig_output
@@ -199,3 +198,6 @@ def get_interface_ip(
         result["message"] = f"未找到网卡{iface}的信息" if is_zh else f"No information found for interface {iface}"
 
     return result
+
+if __name__ == "__main__":
+    mcp.run(transport="sse")

@@ -1,9 +1,7 @@
 import re
 import subprocess
 from typing import Dict, List, Optional
-
 import paramiko
-
 from config.private.netstat.config_loader import NetstatConfig
 from config.public.base_config_loader import LanguageEnum
 

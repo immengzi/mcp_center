@@ -1,8 +1,6 @@
 import logging
 from typing import Dict
-
 from mcp.server import FastMCP
-
 from config.private.netstat.config_loader import NetstatConfig
 from servers.netstat.src.base import get_language, parse_netstat_connections, parse_port_occupation
 from servers.nload.src.base import execute_local_command, execute_remote_command, get_remote_auth
@@ -251,3 +249,8 @@ def check_port_occupation(
             result["message"] = f"检测{host}的端口{port}失败：{exec_result['error']}" if is_zh else f"Failed to check port {port} on {host}: {exec_result['error']}"
 
     return result
+
+
+if __name__ == "__main__":
+    # Initialize and run the server
+    mcp.run(transport='sse')

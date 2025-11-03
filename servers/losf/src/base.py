@@ -2,7 +2,6 @@ from typing import Dict, List, Optional
 import paramiko
 import subprocess
 import re
-
 from config.private.lsof.config_loader import LsofConfig
 from config.public.base_config_loader import LanguageEnum
 

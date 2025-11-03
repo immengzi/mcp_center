@@ -1,18 +1,13 @@
 """进程控制工具：整合自定义SSH连接逻辑"""
 from asyncio.log import logger
 import logging
-
-
 import re
 import subprocess
 from typing import Dict, List, Optional, Any
-
 import paramiko
 import psutil
-
 from config.private.kill.config_loader import KillCommandConfig
 from mcp.server import FastMCP
-
 from servers.kill.src.base import _exec_local_signal_query, _exec_remote_signal_query, _format_raw_signals, create_ssh_connection, execute_local_command, execute_remote_command, get_language
 
 # 初始化日志（使用仓库默认配置）

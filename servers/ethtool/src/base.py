@@ -2,7 +2,6 @@ import paramiko
 import subprocess
 import re
 from typing import Dict, Optional
-
 from config.private.ethtool.config_loader import EthtoolConfig
 from config.public.base_config_loader import LanguageEnum
 

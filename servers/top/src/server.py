@@ -1,17 +1,9 @@
 from asyncio.log import logger
-import logging
 from typing import Union, List, Dict, Optional
-import platform
-import os
 import paramiko
-import yaml
-import datetime
-import subprocess
-from typing import Any, Dict
+from typing import Any
 import psutil
-import tempfile
-from datetime import datetime
-from mcp.server import FastMCP
+
 from config.public.base_config_loader import LanguageEnum
 from config.private.top.config_loader import TopCommandConfig
 
@@ -21,8 +13,7 @@ from servers.top.src.disk import get_disk_metrics
 from servers.top.src.memory import get_memory_metrics
 from servers.top.src.network import get_network_metrics
 from servers.top.src.proc import get_process_metrics
-from servers.top.src.ssh_connection import SSHConnection
-
+from mcp.server import FastMCP
 
 mcp = FastMCP("Perf_Svg MCP Server", host="0.0.0.0", port=TopCommandConfig().get_config().private_config.port)
 

@@ -1,7 +1,6 @@
 import re
 import subprocess
 from typing import Dict, List, Optional, Tuple
-
 import paramiko
 from config.private.iftop.config_loader import IftopConfig
 from config.public.base_config_loader import LanguageEnum

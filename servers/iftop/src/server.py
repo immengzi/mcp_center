@@ -4,7 +4,6 @@ from config.private.iftop.config_loader import IftopConfig
 from servers.iftop.src.base import execute_local_command, get_local_network_interfaces, get_remote_auth, get_remote_network_interfaces, parse_iftop_output
 from servers.iftop.src.base import get_language
 from mcp.server import FastMCP
-
 from servers.npu.src.base import execute_remote_command
 
 # 初始化MCP服务
@@ -242,3 +241,6 @@ def list_network_interfaces(
             result["message"] = f"获取远程主机{host}网卡列表失败" if is_zh else f"Failed to get interface list of remote host {host}"
     
     return result
+
+if __name__ == "__main__":
+    mcp.run(transport="sse")

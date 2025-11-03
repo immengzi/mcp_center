@@ -2,7 +2,6 @@ from typing import Dict, List, Optional
 import paramiko
 import subprocess
 import re
-
 from config.private.npu.config_loader import NpuSmiConfig
 from config.public.base_config_loader import LanguageEnum
 

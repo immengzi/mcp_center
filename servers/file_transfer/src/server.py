@@ -6,7 +6,7 @@ from typing import Dict, List
 import stat
 from scp import SCPClient
 from config.private.file_transfer.config_loader import FileTransferConfig
-from .base import get_language, validate_local_path, get_remote_config, create_ssh_connection
+from servers.file_transfer.src.base import get_language, validate_local_path, get_remote_config, create_ssh_connection
 from mcp.server import FastMCP
 
 # 初始化MCP服务
@@ -445,3 +445,6 @@ def sftp_transfer(operation: str, src: str, dst: str, host: str, create_dir: boo
 
     return result
     
+if __name__ == "__main__":
+    # Initialize and run the server
+    mcp.run(transport='sse')

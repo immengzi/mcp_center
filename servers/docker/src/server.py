@@ -1,12 +1,10 @@
 import logging
-
 import json
 import subprocess
 from typing import Dict
-
 import paramiko
 from config.private.docker.config_loader import DockerConfig
-from .base import get_language, get_remote_auth, execute_remote_command, execute_local_command, parse_container_list, parse_image_list
+from servers.docker.src.base import get_language, get_remote_auth, execute_remote_command, execute_local_command, parse_container_list, parse_image_list
 from mcp.server import FastMCP
 
 # 初始化MCP服务
@@ -818,3 +816,7 @@ def manage_network(
 
     return result
     
+
+if __name__ == "__main__":
+    # Initialize and run the server
+    mcp.run(transport='sse')

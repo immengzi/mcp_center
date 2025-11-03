@@ -1,8 +1,6 @@
 import logging
 from typing import Dict
-
 from mcp.server import FastMCP
-
 from config.private.nload.config_loader import NloadConfig
 from servers.nload.src.base import execute_local_command, execute_remote_command, get_language, get_local_network_interfaces, get_remote_auth, get_remote_network_interfaces, parse_nload_output
 
@@ -227,3 +225,8 @@ def list_network_interfaces(
             result["message"] = f"获取远程主机{host}网卡列表失败" if is_zh else f"Failed to get interface list of remote host {host}"
     
     return result
+
+
+if __name__ == "__main__":
+    # Initialize and run the server
+    mcp.run(transport='sse')

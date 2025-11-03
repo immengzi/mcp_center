@@ -1,8 +1,7 @@
 import logging
 from typing import Dict
-
 from config.private.nmap.config_loader import NmapConfig
-from .base import get_language, get_remote_auth, validate_target, parse_scan_results, execute_local_command, execute_remote_command
+from servers.nmap.src.base import get_language, get_remote_auth, validate_target, parse_scan_results, execute_local_command, execute_remote_command
 from mcp.server import FastMCP
 
 # 初始化MCP服务
@@ -186,4 +185,9 @@ def scan_network(
         result["message"] = f"扫描{target}失败：{exec_result['error']}" if is_zh else f"Failed to scan {target}: {exec_result['error']}"
 
     return result
+
+
+if __name__ == "__main__":
+    # Initialize and run the server
+    mcp.run(transport='sse')
     
