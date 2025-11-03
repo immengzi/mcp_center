@@ -1,11 +1,9 @@
 import logging
-
 import time
 import os
 from typing import Dict  
 from config.private.qemu.config_loader import QemuConfig
-from .base import get_language, get_remote_auth, execute_remote_command, execute_local_command, parse_vm_list, parse_stopped_vms
-
+from servers.qemu.src.base import get_language, get_remote_auth, execute_remote_command, execute_local_command, parse_vm_list, parse_stopped_vms
 from mcp.server import FastMCP
 
 # 初始化MCP服务
@@ -472,4 +470,8 @@ def monitor_vm_status(
     result["success"] = True
     result["message"] = f"成功获取{name}的{sample_count}次监控数据" if is_zh else f"Successfully obtained {sample_count} monitoring data for {name}"
     return result
+
+if __name__ == "__main__":
+    mcp.run(transport="sse")
+
     

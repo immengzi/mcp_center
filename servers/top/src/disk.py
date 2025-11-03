@@ -1,6 +1,6 @@
 """磁盘维度实现：专注于磁盘指标的采集与解析"""
 import psutil
-from typing import Any, Dict, Union, List
+from typing import Any, Dict, Union
 import paramiko
 from base import execute_command
 from config.private.top.config_loader import TopCommandConfig

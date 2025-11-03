@@ -1,15 +1,8 @@
-from asyncio.log import logger
+
 import re
-import subprocess
-import paramiko
 import os
 from typing import Dict, Optional
-from paramiko.ssh_exception import (
-    SSHException, AuthenticationException, NoValidConnectionsError
-)
 
-from config.private.strace.config_loader import StraceCommandConfig
-from config.public.base_config_loader import LanguageEnum
 
 
 def _parse_strace_log(log_path: str) -> Dict[str, Dict]:

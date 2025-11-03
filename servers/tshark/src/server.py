@@ -1,7 +1,6 @@
 import logging
-
 from config.private.tshark.config_loader import TsharkConfig
-from .base import get_language, get_remote_auth, execute_remote_command, execute_local_command, parse_tshark_capture, parse_tshark_protocol_stats
+from servers.tshark.src.base import get_language, get_remote_auth, execute_remote_command, execute_local_command, parse_tshark_capture, parse_tshark_protocol_stats
 from typing import Dict
 from mcp.server import FastMCP
 
@@ -287,3 +286,7 @@ def analyze_protocol_stats(
             result["message"] = f"远程协议分析失败：{exec_result['error']}" if is_zh else f"Failed to analyze remote protocols: {exec_result['error']}"
 
     return result
+
+if __name__ == "__main__":
+    # Initialize and run the server
+    mcp.run(transport='sse')

@@ -7,7 +7,7 @@ import toml
 
 class QemuConfigModel(BaseModel):
     """顶层配置模型"""
-    port: int = Field(default=121, description="MCP服务端口")
+    port: int = Field(default=12134, description="MCP服务端口")
 
 
 class QemuConfig(BaseConfig):
