@@ -1,0 +1,323 @@
+from __future__ import annotations
+import os, sys, json, logging
+from typing import Dict, List, Optional, Union
+from datetime import datetime
+from itertools import groupby
+from math import floor
+import numpy as np
+import pandas as pd
+
+from mcp.server import FastMCP
+from anteater.core.ts import TimeSeries
+from anteater.model.algorithms.normalization import Normalization
+from anteater.model.algorithms.spot import Spot
+from anteater.model.algorithms.ts_dbscan import TSDBSCAN
+
+# 导入数据层定义
+from mcp_data import (
+    RootCauseModel,
+    AnomalyModel,
+    KPIParam,
+    WindowParam,
+    ExtraConfig,
+    TSPoint,
+    TSPayload,
+    RCARequest,
+    ReportType,
+    build_metric_loader,
+    divide,
+    dt_last,
+)
+
+# ================= 日志 =================
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    handlers=[logging.StreamHandler(sys.stdout)]
+)
+logger = logging.getLogger("container_disruption_mcp")
+
+# ================== MCP Server ==================
+mcp = FastMCP("Container Disruption MCP", host="0.0.0.0", port=19191)
+
+# =============== Facade 主体类 ===============
+class ContainerDisruptionFacade:
+    def __init__(self, data_loader, config: ExtraConfig):
+        self.data_loader = data_loader
+        self.config = config
+        self.q = 1e-3
+        self.level = 0.98
+        self.smooth_win = 3
+        self.container_num = 0
+        self.start_time: Optional[datetime] = None
+        self.end_time: Optional[datetime] = None
+
+    # 在线取数
+    def get_kpi_ts_list(self, metric: str, machine_id: str, look_back: int):
+        start, end = dt_last(minutes=look_back)
+        self.start_time, self.end_time = start, end
+        point_count = self.data_loader.expected_point_length(start, end)
+        ts_list = self.data_loader.get_metric(start, end, metric, machine_id=machine_id)
+        return point_count, ts_list
+
+    # 离线模式
+    @staticmethod
+    def ts_payload_to_ts_list(payload: TSPayload) -> List[TimeSeries]:
+        return [TimeSeries(metric=it.metric, labels=it.labels, time_stamps=it.time_stamps, values=it.values)
+                for it in payload.items]
+
+    # 异常检测（SPOT）
+    def detect_by_spot_without_rca(
+        self,
+        metric: str,
+        machine_id: str,
+        outlier_ratio_th: float,
+        look_back: int,
+        obs_size: int,
+        ts_list_override: Optional[List[TimeSeries]] = None,
+    ) -> List[AnomalyModel]:
+        ts_dbscan_detector = TSDBSCAN({"look_back": look_back, "obs_size": obs_size})
+
+        if ts_list_override is None:
+            point_count, ts_list = self.get_kpi_ts_list(metric, machine_id, look_back)
+        else:
+            ts_list = ts_list_override
+            point_count = len(ts_list[0].time_stamps) if ts_list else 0
+
+        anomalies: List[AnomalyModel] = []
+        self.container_num += len(ts_list)
+
+        for _ts in ts_list:
+            detect_result = ts_dbscan_detector.detect(_ts.values)
+            train_data = [_ts.values[i] for i in range(len(detect_result)) if detect_result[i] == 0]
+            test_data = _ts.values[-obs_size:]
+
+            if not self._is_data_valid(_ts.values, point_count, obs_size):
+                score = 0.0
+            else:
+                result = self._spot_detect(train_data, test_data, obs_size)
+                score = float(divide(result, obs_size))
+
+            if score >= outlier_ratio_th:
+                extra_info = self.get_container_extra_info(
+                    machine_id, _ts.labels.get('container_name', ''), self.start_time, self.end_time, obs_size
+                ) if (self.start_time and self.end_time) else {}
+                anomalies.append(
+                    AnomalyModel(
+                        machine_id=machine_id,
+                        metric=_ts.metric,
+                        labels=_ts.labels,
+                        score=score,
+                        entity_name="container",
+                        details={"event_source": "spot", "info": extra_info},
+                    )
+                )
+        return anomalies
+
+    # SPOT 内部实现
+    def _spot_detect(self, train_data, test_data, obs_size):
+        ts_series = pd.Series(train_data)
+        spot = Spot(q=self.q)
+        level = self._check_level(np.array(train_data), self.level)
+        spot.initialize(train_data, level=level)
+        test_data, _, _ = Normalization.clip_transform(
+            np.array(test_data)[np.newaxis, :], is_clip=False
+        )
+        thr_with_alarms = spot.run(test_data[0], with_alarm=True)
+        bound_result = np.array(test_data[0] > thr_with_alarms["thresholds"], dtype=np.int32)
+        return int(np.sum(bound_result))
+
+    # 根因分析
+    def find_disruption_source(self, victim_ts: TimeSeries, all_ts: List[TimeSeries]) -> List[RootCauseModel]:
+        tmp_causes: List[RootCauseModel] = []
+        for ts in all_ts:
+            if ts is victim_ts:
+                continue
+            df = pd.DataFrame({"victim": victim_ts.values, "source": ts.values})
+            self._normalize_df(df)
+            corr = abs(df.corr().iloc[0, 1])
+            if corr > 0.5:
+                tmp_causes.append(RootCauseModel(metric=ts.metric, labels=ts.labels, score=round(corr, 3)))
+        tmp_causes.sort(key=lambda x: x.score, reverse=True)
+        return tmp_causes[:3]
+
+    # 额外信息
+    def get_container_extra_info(self, machine_id, container_name, start_time, end_time, obs_size):
+        result: Dict[str, Union[str, int, float]] = {
+            "container_name": container_name, "machine_id": machine_id
+        }
+        raw = self.config.extra_metrics or ""
+        metrics = [m.strip() for m in raw.split(",") if m.strip()]
+        for metric in metrics:
+            ts_list = self.data_loader.get_metric(start_time, end_time, metric, machine_id=machine_id)
+            for _ts in ts_list:
+                if container_name == _ts.labels.get('container_name', ''):
+                    trend = self.cal_trend(_ts.values, obs_size)
+                    result[metric] = trend
+                    break
+        return result
+
+    # ===== 工具方法 =====
+    @staticmethod
+    def _normalize_df(df: pd.DataFrame):
+        for col in df.columns:
+            if df[col].dtype in ("int64", "float64"):
+                arr = df[col].to_numpy()
+                mx, mn = float(np.max(arr)), float(np.min(arr))
+                if mx != mn:
+                    df[col] = (df[col] - mn) / (mx - mn)
+
+    @staticmethod
+    def _check_level(metric_data: np.ndarray, level: float) -> float:
+        data_size = len(metric_data)
+        if int(data_size * (1 - level)) == 0:
+            peak = 2
+            level = 1.0 - peak / float(data_size) - 1e-6
+        return level
+
+    @staticmethod
+    def _is_data_valid(values, point_count, obs_size) -> bool:
+        if len(values) < point_count * 0.6 or sum(values) == 0:
+            return False
+        if all(x == values[0] for x in values):
+            return False
+        return True
+
+    @staticmethod
+    def cal_trend(metric_values: List[float], obs_size: int) -> float:
+        if len(metric_values) <= obs_size:
+            return 0.0
+        pre, check = metric_values[:-obs_size], metric_values[-obs_size:]
+        pre_mean, check_mean = np.mean(pre), np.mean(check)
+        return round((check_mean - pre_mean) / pre_mean, 3) if pre_mean > 0 else 0.0
+
+
+# =============== 报告渲染 ===============
+def render_report(anomalies: List[AnomalyModel], report_type: ReportType) -> Dict[str, str]:
+    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    if report_type == ReportType.normal or not anomalies:
+        md = [
+            "# AI训练任务性能诊断报告",
+            f"**时间**：{now}",
+            "## 总览",
+            "当前AI训练任务运行正常，将持续监测。",
+        ]
+        return {"markdown": "\n\n".join(md)}
+
+    md = [
+        "# AI训练任务性能诊断报告",
+        f"**时间**：{now}",
+        "## 总览",
+        f"检测到异常容器数量：**{len(anomalies)}**",
+        "## 细节",
+        "| 机器 | 指标 | 分数 | 容器 | 细节 | RCA |",
+        "|---|---:|---:|---|---|---|"
+    ]
+    for a in anomalies:
+        container = a.labels.get('container_name', '')
+        rca_txt = ", ".join([f"{rc.metric}({rc.score})" for rc in a.root_causes]) if a.root_causes else "-"
+        md.append(f"| {a.machine_id} | {a.metric} | {a.score:.3f} | {container} | {json.dumps(a.details.get('info', {}), ensure_ascii=False)} | {rca_txt} |")
+
+    md.append("## 建议\n- 请检查计算、网络、存储链路，隔离慢节点。")
+    return {"markdown": "\n\n".join(md)}
+
+
+# =============== MCP 工具定义 ===============
+@mcp.tool(name="container_anomaly_detection_tool")
+def container_anomaly_detection_tool(
+    machine_id: Optional[str] = None,
+    kpis: Optional[List[KPIParam]] = None,
+    window: WindowParam = WindowParam(),
+    extra: Optional[ExtraConfig] = None,
+    ts_payload: Optional[TSPayload] = None,
+    anteater_conf: Optional[dict] = None,
+    metric_info: Optional[dict] = None,
+    anteater_conf_path: Optional[str] = None,
+    metric_info_path: Optional[str] = None,
+) -> List[AnomalyModel]:
+    facade: ContainerDisruptionFacade
+    anomalies: List[AnomalyModel] = []
+
+    if ts_payload is not None:  # 离线模式
+        facade = ContainerDisruptionFacade(data_loader=object(), config=extra or ExtraConfig())
+        ts_list = facade.ts_payload_to_ts_list(ts_payload)
+        for metric in {ts.metric for ts in ts_list}:
+            sub_ts = [ts for ts in ts_list if ts.metric == metric]
+            kth = 0.1
+            if kpis:
+                for k in kpis:
+                    if k.metric == metric:
+                        kth = float(k.params.get('outlier_ratio_th', 0.1))
+                        break
+            anomalies.extend(
+                facade.detect_by_spot_without_rca(metric, machine_id or "offline", kth, window.look_back, window.obs_size, sub_ts)
+            )
+        return anomalies
+
+    if not machine_id or not kpis:  # 在线模式
+        raise ValueError("在线模式必须提供 machine_id 和 kpis")
+
+    loader = build_metric_loader(
+        config_json=anteater_conf,
+        metricinfo_json=metric_info,
+        config_path=anteater_conf_path,
+        metricinfo_path=metric_info_path,
+    )
+    facade = ContainerDisruptionFacade(loader, extra or ExtraConfig())
+
+    for k in kpis:
+        kth = float(k.params.get('outlier_ratio_th', 0.1))
+        anomalies.extend(
+            facade.detect_by_spot_without_rca(k.metric, machine_id, kth, window.look_back, window.obs_size)
+        )
+    logger.info("total containers: %d", facade.container_num)
+    facade.container_num = 0
+    return anomalies
+
+
+@mcp.tool(name="container_root_cause_tool")
+def container_root_cause_tool(
+    rca_request: Optional[RCARequest] = None,
+    machine_id: Optional[str] = None,
+    metric: Optional[str] = None,
+    victim_container_name: Optional[str] = None,
+    window: WindowParam = WindowParam(),
+    anteater_conf: Optional[dict] = None,
+    metric_info: Optional[dict] = None,
+    anteater_conf_path: Optional[str] = None,
+    metric_info_path: Optional[str] = None,
+) -> List[RootCauseModel]:
+    if rca_request is not None:  # 离线
+        facade = ContainerDisruptionFacade(object(), ExtraConfig())
+        all_ts = facade.ts_payload_to_ts_list(rca_request.context)
+        victim = TimeSeries(**rca_request.victim.dict())
+        return facade.find_disruption_source(victim, all_ts)
+
+    if not (machine_id and metric and victim_container_name):
+        raise ValueError("在线 RCA 需要 machine_id、metric、victim_container_name")
+
+    loader = build_metric_loader(
+        config_json=anteater_conf,
+        metricinfo_json=metric_info,
+        config_path=anteater_conf_path,
+        metricinfo_path=metric_info_path,
+    )
+    facade = ContainerDisruptionFacade(loader, ExtraConfig())
+    _, ts_list = facade.get_kpi_ts_list(metric, machine_id, window.look_back)
+    victim_list = [ts for ts in ts_list if ts.labels.get('container_name') == victim_container_name]
+    if not victim_list:
+        raise RuntimeError(f"未找到容器 {victim_container_name} 的时序")
+    return facade.find_disruption_source(victim_list[0], ts_list)
+
+
+@mcp.tool(name="container_report_tool")
+def container_report_tool(anomalies: List[AnomalyModel], report_type: ReportType = ReportType.anomaly):
+    return render_report(anomalies, report_type)
+
+
+# =============== 启动 ===============
+if __name__ == "__main__":
+    if os.name == "posix":
+        import multiprocessing
+        multiprocessing.set_start_method("spawn", force=True)
+    mcp.run(transport="sse")
