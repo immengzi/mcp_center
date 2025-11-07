@@ -3,7 +3,6 @@ from glob import glob
 from setuptools import setup, find_packages
 import os 
 
-# ser = "/usr/lib/systemd/system/systrac-mcpserver.service"
 ser = "/usr/lib/systemd/system/container-disruption-detection-mcpserver.service"
 if os.path.isfile(ser):
     os.remove(ser)
@@ -17,13 +16,27 @@ setup(
     keywords=["Container Disruption Detection", "Group Compare", "AI Model", "MCP Server"],
     packages=find_packages(where=".", exclude=("tests", "tests.*")),
     data_files=[
-        ('/etc/anteater/config/', glob('config/ftp_config.json')),
+        ('/etc/gala-anteater/config/', glob('config/metricinfo.json')),
+        ('/etc/gala-anteater/config/', glob('config/gala-anteater.yaml')),
+        ('/etc/gala-anteater/config/', glob('config/log.settings.ini')),
+        ('/etc/gala-anteater/module/', glob('config/module/*')),
+        ('/etc/gala-anteater/entity/', glob('config/entity/*')),
         ('/usr/lib/systemd/system/', glob('service/*')),
     ],
     install_requires=[
-        "anteater",
-        "paramiko",
-        "fastapi"
+        "APScheduler",
+        "kafka-python",
+        "joblib",
+        "numpy",
+        "pandas",
+        "requests",
+        "scikit_learn",
+        "scipy",
+        "torch",
+        "networkx",
+        "pyArango",
+        "pingouin",
+        "statsmodels"
     ],
     entry_points={
         "console_scripts": [
