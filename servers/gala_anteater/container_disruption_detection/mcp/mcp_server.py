@@ -28,11 +28,12 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     handlers=[logging.StreamHandler(sys.stdout)]
 )
-logger = logging.getLogger("container_disruption_mcp")
+logger = logging.getLogger("container_disruption_detection_mcp")
 
-mcp = FastMCP("Container Disruption MCP", host="0.0.0.0", port=12345)
+mcp = FastMCP("Container Disruption Detection MCP", host="0.0.0.0", port=12345)
 
 
+# Facade 主体类
 class ContainerDisruptionFacade:
     def __init__(self, data_loader, config: ExtraConfig):
         self.data_loader = data_loader
@@ -43,7 +44,27 @@ class ContainerDisruptionFacade:
         self.container_num = 0
         self.start_time: Optional[datetime] = None
         self.end_time: Optional[datetime] = None
+    
+    # 自动获取机器ID
+    def get_unique_machine_ids(self, look_back: int, kpis: List[KPIParam]) -> List[str]:
+        """自动获取在指定时间窗口内活跃的机器ID"""
+        start, end = dt_last(minutes=look_back)
+        metrics = [k.metric for k in kpis]
 
+        try:
+            machine_ids = self.data_loader.get_unique_machines(start, end, metrics)
+        except Exception as e:
+            logger.warning(f"get_unique_machines() 调用失败，将使用 fallback 方式提取 machine_id: {e}")
+            ts_list = self.data_loader.get_metric(start, end, metrics[0])
+            machine_ids = list({ts.labels.get('machine_id', '') for ts in ts_list if ts.labels.get('machine_id')})
+
+        if not machine_ids:
+            logger.warning("未检测到任何 machine_id，请检查数据源配置或时间窗口。")
+        else:
+            logger.info(f"自动检测到 {len(machine_ids)} 台机器: {machine_ids}")
+        return machine_ids
+
+    # 在线取数
     def get_kpi_ts_list(self, metric: str, machine_id: str, look_back: int):
         start, end = dt_last(minutes=look_back)
         self.start_time, self.end_time = start, end
@@ -51,7 +72,7 @@ class ContainerDisruptionFacade:
         ts_list = self.data_loader.get_metric(start, end, metric, machine_id=machine_id)
         return point_count, ts_list
 
-    def detect_by_spot_without_rca(
+    def detect_by_spot(
         self,
         metric: str,
         machine_id: str,
@@ -59,7 +80,7 @@ class ContainerDisruptionFacade:
         look_back: int,
         obs_size: int,
     ) -> List[AnomalyModel]:
-        ts_dbscan_detector = TSDBSCAN({"look_back": look_back, "obs_size": obs_size})
+        ts_dbscan_detector = TSDBSCAN(look_back=look_back, obs_size=obs_size)
         point_count, ts_list = self.get_kpi_ts_list(metric, machine_id, look_back)
 
         anomalies: List[AnomalyModel] = []
@@ -93,7 +114,6 @@ class ContainerDisruptionFacade:
         return anomalies
 
     def _spot_detect(self, train_data, test_data, obs_size):
-        ts_series = pd.Series(train_data)
         spot = Spot(q=self.q)
         level = self._check_level(np.array(train_data), self.level)
         spot.initialize(train_data, level=level)
@@ -135,7 +155,7 @@ class ContainerDisruptionFacade:
     @staticmethod
     def _normalize_df(df: pd.DataFrame):
         for col in df.columns:
-            if df[col].dtype in ("int64", "float64"):
+            if np.issubdtype(df[col].dtype, np.number):
                 arr = df[col].to_numpy()
                 mx, mn = float(np.max(arr)), float(np.min(arr))
                 if mx != mn:
@@ -151,7 +171,7 @@ class ContainerDisruptionFacade:
 
     @staticmethod
     def _is_data_valid(values, point_count, obs_size) -> bool:
-        if len(values) < point_count * 0.6 or sum(values) == 0:
+        if len(values) < point_count * 0.6 or np.allclose(values, 0):
             return False
         if all(x == values[0] for x in values):
             return False
@@ -170,15 +190,15 @@ def render_report(anomalies: List[AnomalyModel], report_type: ReportType) -> Dic
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     if report_type == ReportType.normal or not anomalies:
         md = [
-            "# AI训练任务性能诊断报告",
+            "# 容器干扰检测诊断报告",
             f"**时间**：{now}",
             "## 总览",
-            "当前AI训练任务运行正常，将持续监测。",
+            "当前容器运行正常，将持续监测。",
         ]
         return {"markdown": "\n\n".join(md)}
 
     md = [
-        "# AI训练任务性能诊断报告",
+        "# 容器干扰检测诊断报告",
         f"**时间**：{now}",
         "## 总览",
         f"检测到异常容器数量：**{len(anomalies)}**",
@@ -195,38 +215,53 @@ def render_report(anomalies: List[AnomalyModel], report_type: ReportType) -> Dic
     return {"markdown": "\n\n".join(md)}
 
 
-@mcp.tool(name="container_anomaly_detection_tool")
-def container_anomaly_detection_tool(
-    machine_id: str,
+@mcp.tool(name="container_disruption_detection_tool")
+def container_disruption_detection_tool(
     kpis: List[KPIParam],
     window: WindowParam = WindowParam(),
     extra: Optional[ExtraConfig] = None,
     anteater_conf: Optional[dict] = None,
     metric_info: Optional[dict] = None,
+    machine_id: Optional[str] = None
 ) -> List[AnomalyModel]:
+    """容器异常检测工具（支持自动识别机器ID）"""
     loader = build_metric_loader(config_json=anteater_conf, metricinfo_json=metric_info)
     facade = ContainerDisruptionFacade(loader, extra or ExtraConfig())
     anomalies: List[AnomalyModel] = []
 
-    for k in kpis:
-        kth = float(k.params.get('outlier_ratio_th', 0.1))
-        anomalies.extend(
-            facade.detect_by_spot_without_rca(k.metric, machine_id, kth, window.look_back, window.obs_size)
-        )
+    # 如果未指定 machine_id，则自动获取
+    machine_ids: List[str] = []
+    if not machine_id:
+        # 选择第一个 KPI 的 metric 进行扫描
+        if not kpis:
+            raise ValueError("必须提供至少一个 KPI 参数")
+        machine_ids = facade.get_unique_machine_ids(window.look_back, kpis)
+    else:
+        machine_ids = [machine_id]
+
+    # 对每个机器执行检测
+    for mid in machine_ids:
+        for k in kpis:
+            kth = float(k.params.get('outlier_ratio_th', 0.1))
+            anomalies.extend(
+                facade.detect_by_spot(k.metric, mid, kth, window.look_back, window.obs_size)
+            )
+
     logger.info("total containers: %d", facade.container_num)
     facade.container_num = 0
     return anomalies
 
-
-@mcp.tool(name="container_root_cause_tool")
-def container_root_cause_tool(
-    machine_id: str,
+@mcp.tool(name="rca_tool")
+def rca_tool(
     metric: str,
     victim_container_name: str,
     window: WindowParam = WindowParam(),
     anteater_conf: Optional[dict] = None,
     metric_info: Optional[dict] = None,
+    machine_id: str = "",
 ) -> List[RootCauseModel]:
+    if not machine_id:
+        raise ValueError("rca_tool 需要提供 machine_id")
     loader = build_metric_loader(config_json=anteater_conf, metricinfo_json=metric_info)
     facade = ContainerDisruptionFacade(loader, ExtraConfig())
     _, ts_list = facade.get_kpi_ts_list(metric, machine_id, window.look_back)
@@ -236,8 +271,8 @@ def container_root_cause_tool(
     return facade.find_disruption_source(victim_list[0], ts_list)
 
 
-@mcp.tool(name="container_report_tool")
-def container_report_tool(anomalies: List[AnomalyModel], report_type: ReportType = ReportType.anomaly):
+@mcp.tool(name="report_tool")
+def report_tool(anomalies: List[AnomalyModel], report_type: ReportType = ReportType.anomaly):
     return render_report(anomalies, report_type)
 
 

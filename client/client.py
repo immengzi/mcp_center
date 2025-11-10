@@ -120,11 +120,23 @@ class MCPClient:
 
 async def main() -> None:
     """测试MCP Client"""
-    url = "http://0.0.0.0:12101/sse"
+    url = "http://0.0.0.0:12345/sse"
     headers = {}
     client = MCPClient(url, headers)
     await client.init()
-    result = await client.call_tool("top_collect_tool", {"k": 5})
+    result = await client.call_tool("container_anomaly_detection_tool", {
+        "kpis": [{"metric": "cpu_usage"}],
+        "anteater_conf": {
+            "detection_window": 20,
+            "observation_size": 6,
+            "extra_metrics": ""
+        },
+        "metric_info": {
+            "cpu_usage": {
+                "entity_name": "container_1"
+            }
+        }
+    })
     print(result)
     await client.stop()
 
