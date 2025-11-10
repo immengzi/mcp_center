@@ -9,7 +9,7 @@ from anteater.core.ts import TimeSeries
 
 logger = logging.getLogger("container_disruption_data")
 
-# ================= 工具函数 =================
+
 def divide(x, y):
     try:
         return x / y if y != 0 else 0
@@ -23,7 +23,6 @@ def dt_last(*, minutes: int):
     return start, end
 
 
-# ================== 数据模型 ==================
 class RootCauseModel(BaseModel):
     metric: str
     labels: Dict[str, Union[str, int, float]] = Field(default_factory=dict)
@@ -76,22 +75,11 @@ class ReportType(str, Enum):
     anomaly = "anomaly"
 
 
-# =============== MetricLoader 工厂 ===============
-def build_metric_loader(config_json=None, metricinfo_json=None,
-                        config_path=None, metricinfo_path=None):
-    """构建 Anteater MetricLoader"""
+def build_metric_loader(config_json=None, metricinfo_json=None):
+    """构建 MetricLoader 实例"""
     from anteater.config import AnteaterConf
     from anteater.core.info import MetricInfo
     from anteater.source.metric_loader import MetricLoader
-
-    def _load_json(path):
-        with open(path, 'r', encoding='utf-8') as f:
-            return json.load(f)
-
-    if config_json is None and config_path:
-        config_json = _load_json(config_path)
-    if metricinfo_json is None and metricinfo_path:
-        metricinfo_json = _load_json(metricinfo_path)
 
     cfg = AnteaterConf(**config_json) if config_json else AnteaterConf()
     minfo = MetricInfo(**metricinfo_json) if metricinfo_json else MetricInfo()

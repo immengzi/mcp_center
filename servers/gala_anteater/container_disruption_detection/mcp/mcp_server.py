@@ -2,34 +2,27 @@ from __future__ import annotations
 import os, sys, json, logging
 from typing import Dict, List, Optional, Union
 from datetime import datetime
-from itertools import groupby
-from math import floor
 import numpy as np
 import pandas as pd
 
 from mcp.server import FastMCP
-from anteater.core.ts import TimeSeries
-from anteater.model.algorithms.normalization import Normalization
-from anteater.model.algorithms.spot import Spot
-from anteater.model.algorithms.ts_dbscan import TSDBSCAN
+from servers.gala_anteater.anteater.core.ts import TimeSeries
+from servers.gala_anteater.anteater.model.algorithms.normalization import Normalization
+from servers.gala_anteater.anteater.model.algorithms.spot import Spot
+from servers.gala_anteater.anteater.model.algorithms.ts_dbscan import TSDBSCAN
 
-# 导入数据层定义
 from mcp_data import (
     RootCauseModel,
     AnomalyModel,
     KPIParam,
     WindowParam,
     ExtraConfig,
-    TSPoint,
-    TSPayload,
-    RCARequest,
-    ReportType,
-    build_metric_loader,
-    divide,
     dt_last,
+    divide,
+    build_metric_loader,
+    ReportType,
 )
 
-# ================= 日志 =================
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -37,10 +30,9 @@ logging.basicConfig(
 )
 logger = logging.getLogger("container_disruption_mcp")
 
-# ================== MCP Server ==================
-mcp = FastMCP("Container Disruption MCP", host="0.0.0.0", port=19191)
+mcp = FastMCP("Container Disruption MCP", host="0.0.0.0", port=12345)
 
-# =============== Facade 主体类 ===============
+
 class ContainerDisruptionFacade:
     def __init__(self, data_loader, config: ExtraConfig):
         self.data_loader = data_loader
@@ -52,7 +44,6 @@ class ContainerDisruptionFacade:
         self.start_time: Optional[datetime] = None
         self.end_time: Optional[datetime] = None
 
-    # 在线取数
     def get_kpi_ts_list(self, metric: str, machine_id: str, look_back: int):
         start, end = dt_last(minutes=look_back)
         self.start_time, self.end_time = start, end
@@ -60,13 +51,6 @@ class ContainerDisruptionFacade:
         ts_list = self.data_loader.get_metric(start, end, metric, machine_id=machine_id)
         return point_count, ts_list
 
-    # 离线模式
-    @staticmethod
-    def ts_payload_to_ts_list(payload: TSPayload) -> List[TimeSeries]:
-        return [TimeSeries(metric=it.metric, labels=it.labels, time_stamps=it.time_stamps, values=it.values)
-                for it in payload.items]
-
-    # 异常检测（SPOT）
     def detect_by_spot_without_rca(
         self,
         metric: str,
@@ -74,15 +58,9 @@ class ContainerDisruptionFacade:
         outlier_ratio_th: float,
         look_back: int,
         obs_size: int,
-        ts_list_override: Optional[List[TimeSeries]] = None,
     ) -> List[AnomalyModel]:
         ts_dbscan_detector = TSDBSCAN({"look_back": look_back, "obs_size": obs_size})
-
-        if ts_list_override is None:
-            point_count, ts_list = self.get_kpi_ts_list(metric, machine_id, look_back)
-        else:
-            ts_list = ts_list_override
-            point_count = len(ts_list[0].time_stamps) if ts_list else 0
+        point_count, ts_list = self.get_kpi_ts_list(metric, machine_id, look_back)
 
         anomalies: List[AnomalyModel] = []
         self.container_num += len(ts_list)
@@ -114,7 +92,6 @@ class ContainerDisruptionFacade:
                 )
         return anomalies
 
-    # SPOT 内部实现
     def _spot_detect(self, train_data, test_data, obs_size):
         ts_series = pd.Series(train_data)
         spot = Spot(q=self.q)
@@ -127,7 +104,6 @@ class ContainerDisruptionFacade:
         bound_result = np.array(test_data[0] > thr_with_alarms["thresholds"], dtype=np.int32)
         return int(np.sum(bound_result))
 
-    # 根因分析
     def find_disruption_source(self, victim_ts: TimeSeries, all_ts: List[TimeSeries]) -> List[RootCauseModel]:
         tmp_causes: List[RootCauseModel] = []
         for ts in all_ts:
@@ -141,7 +117,6 @@ class ContainerDisruptionFacade:
         tmp_causes.sort(key=lambda x: x.score, reverse=True)
         return tmp_causes[:3]
 
-    # 额外信息
     def get_container_extra_info(self, machine_id, container_name, start_time, end_time, obs_size):
         result: Dict[str, Union[str, int, float]] = {
             "container_name": container_name, "machine_id": machine_id
@@ -157,7 +132,6 @@ class ContainerDisruptionFacade:
                     break
         return result
 
-    # ===== 工具方法 =====
     @staticmethod
     def _normalize_df(df: pd.DataFrame):
         for col in df.columns:
@@ -192,7 +166,6 @@ class ContainerDisruptionFacade:
         return round((check_mean - pre_mean) / pre_mean, 3) if pre_mean > 0 else 0.0
 
 
-# =============== 报告渲染 ===============
 def render_report(anomalies: List[AnomalyModel], report_type: ReportType) -> Dict[str, str]:
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     if report_type == ReportType.normal or not anomalies:
@@ -222,48 +195,18 @@ def render_report(anomalies: List[AnomalyModel], report_type: ReportType) -> Dic
     return {"markdown": "\n\n".join(md)}
 
 
-# =============== MCP 工具定义 ===============
 @mcp.tool(name="container_anomaly_detection_tool")
 def container_anomaly_detection_tool(
-    machine_id: Optional[str] = None,
-    kpis: Optional[List[KPIParam]] = None,
+    machine_id: str,
+    kpis: List[KPIParam],
     window: WindowParam = WindowParam(),
     extra: Optional[ExtraConfig] = None,
-    ts_payload: Optional[TSPayload] = None,
     anteater_conf: Optional[dict] = None,
     metric_info: Optional[dict] = None,
-    anteater_conf_path: Optional[str] = None,
-    metric_info_path: Optional[str] = None,
 ) -> List[AnomalyModel]:
-    facade: ContainerDisruptionFacade
-    anomalies: List[AnomalyModel] = []
-
-    if ts_payload is not None:  # 离线模式
-        facade = ContainerDisruptionFacade(data_loader=object(), config=extra or ExtraConfig())
-        ts_list = facade.ts_payload_to_ts_list(ts_payload)
-        for metric in {ts.metric for ts in ts_list}:
-            sub_ts = [ts for ts in ts_list if ts.metric == metric]
-            kth = 0.1
-            if kpis:
-                for k in kpis:
-                    if k.metric == metric:
-                        kth = float(k.params.get('outlier_ratio_th', 0.1))
-                        break
-            anomalies.extend(
-                facade.detect_by_spot_without_rca(metric, machine_id or "offline", kth, window.look_back, window.obs_size, sub_ts)
-            )
-        return anomalies
-
-    if not machine_id or not kpis:  # 在线模式
-        raise ValueError("在线模式必须提供 machine_id 和 kpis")
-
-    loader = build_metric_loader(
-        config_json=anteater_conf,
-        metricinfo_json=metric_info,
-        config_path=anteater_conf_path,
-        metricinfo_path=metric_info_path,
-    )
+    loader = build_metric_loader(config_json=anteater_conf, metricinfo_json=metric_info)
     facade = ContainerDisruptionFacade(loader, extra or ExtraConfig())
+    anomalies: List[AnomalyModel] = []
 
     for k in kpis:
         kth = float(k.params.get('outlier_ratio_th', 0.1))
@@ -277,31 +220,14 @@ def container_anomaly_detection_tool(
 
 @mcp.tool(name="container_root_cause_tool")
 def container_root_cause_tool(
-    rca_request: Optional[RCARequest] = None,
-    machine_id: Optional[str] = None,
-    metric: Optional[str] = None,
-    victim_container_name: Optional[str] = None,
+    machine_id: str,
+    metric: str,
+    victim_container_name: str,
     window: WindowParam = WindowParam(),
     anteater_conf: Optional[dict] = None,
     metric_info: Optional[dict] = None,
-    anteater_conf_path: Optional[str] = None,
-    metric_info_path: Optional[str] = None,
 ) -> List[RootCauseModel]:
-    if rca_request is not None:  # 离线
-        facade = ContainerDisruptionFacade(object(), ExtraConfig())
-        all_ts = facade.ts_payload_to_ts_list(rca_request.context)
-        victim = TimeSeries(**rca_request.victim.dict())
-        return facade.find_disruption_source(victim, all_ts)
-
-    if not (machine_id and metric and victim_container_name):
-        raise ValueError("在线 RCA 需要 machine_id、metric、victim_container_name")
-
-    loader = build_metric_loader(
-        config_json=anteater_conf,
-        metricinfo_json=metric_info,
-        config_path=anteater_conf_path,
-        metricinfo_path=metric_info_path,
-    )
+    loader = build_metric_loader(config_json=anteater_conf, metricinfo_json=metric_info)
     facade = ContainerDisruptionFacade(loader, ExtraConfig())
     _, ts_list = facade.get_kpi_ts_list(metric, machine_id, window.look_back)
     victim_list = [ts for ts in ts_list if ts.labels.get('container_name') == victim_container_name]
@@ -315,7 +241,6 @@ def container_report_tool(anomalies: List[AnomalyModel], report_type: ReportType
     return render_report(anomalies, report_type)
 
 
-# =============== 启动 ===============
 if __name__ == "__main__":
     if os.name == "posix":
         import multiprocessing
