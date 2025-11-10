@@ -1,26 +1,10 @@
 from __future__ import annotations
-import json
 import logging
-from datetime import datetime, timedelta, timezone
 from enum import Enum
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union, Any
 from pydantic import BaseModel, Field
-from anteater.core.ts import TimeSeries
 
-logger = logging.getLogger("container_disruption_data")
-
-
-def divide(x, y):
-    try:
-        return x / y if y != 0 else 0
-    except Exception:
-        return 0
-
-
-def dt_last(*, minutes: int):
-    end = datetime.now(timezone.utc)
-    start = end - timedelta(minutes=minutes)
-    return start, end
+logger = logging.getLogger("container_disruption_detection_data")
 
 
 class RootCauseModel(BaseModel):
@@ -42,7 +26,7 @@ class AnomalyModel(BaseModel):
 class KPIParam(BaseModel):
     metric: str
     entity_name: Optional[str] = ""
-    params: Dict[str, Union[str, int, float]] = Field(default_factory=dict)
+    params: Dict[str, Any] = Field(default_factory=dict)
 
 
 class WindowParam(BaseModel):
@@ -73,14 +57,3 @@ class RCARequest(BaseModel):
 class ReportType(str, Enum):
     normal = "normal"
     anomaly = "anomaly"
-
-
-def build_metric_loader(config_json=None, metricinfo_json=None):
-    """构建 MetricLoader 实例"""
-    from anteater.config import AnteaterConf
-    from anteater.core.info import MetricInfo
-    from anteater.source.metric_loader import MetricLoader
-
-    cfg = AnteaterConf(**config_json) if config_json else AnteaterConf()
-    minfo = MetricInfo(**metricinfo_json) if metricinfo_json else MetricInfo()
-    return MetricLoader(metricinfo=minfo, config=cfg)
