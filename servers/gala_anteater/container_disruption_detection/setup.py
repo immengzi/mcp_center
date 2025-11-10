@@ -9,8 +9,8 @@ if os.path.isfile(ser):
 setup(
     name="container_disruption_detection_mcp",
     version="1.0.0",
-    author="zimeng li",
-    author_email="lizimeng9@huawei.com",
+    author="zimeng li, lihao dong",
+    author_email="lizimeng9@huawei.com, donglihao1@huawei.com",
     description="MCP Server for Container Disruption Detection for AI Model Training and Inference",
     url="https://gitee.com/openeuler/gala-anteater",
     keywords=[
