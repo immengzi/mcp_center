@@ -1,0 +1,5 @@
+# HotspotTrace MCP Server 私有配置
+# 远程主机配置请在 config/public/public_config.toml 中统一配置
+
+# MCP服务端口
+port = 12216
