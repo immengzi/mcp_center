@@ -79,34 +79,62 @@ def numa_container(container_id: str, host: Optional[str] = None) -> Dict[str, A
 
 
 def _monitor_local_container(container_id: str, is_zh: bool) -> Dict[str, Any]:
-    """监控本地 Docker 容器"""
+    """监控本地 Docker 容器（选择 RSS 最大的业务进程）"""
     try:
         docker_bin = _find_executable("docker", is_zh)
         numastat_bin = _find_executable("numastat", is_zh)
-        
-        # 获取容器主进程 PID
-        inspect_cmd = [docker_bin, 'inspect', '--format', '{{.State.Pid}}', container_id]
+
+        # 1. 获取容器 init PID（宿主机视角）
+        inspect_cmd = [docker_bin, "inspect", "--format", "{{.State.Pid}}", container_id]
         inspect_result = subprocess.run(inspect_cmd, capture_output=True, text=True, check=True)
-        pid = inspect_result.stdout.strip()
-        
-        if not pid.isdigit():
-            msg = f"无法获取容器 {container_id} 的 PID: {pid}" if is_zh else f"Failed to get PID for container {container_id}: {pid}"
-            return {
-                'status': 'error',
-                'message': msg,
-                'output': ''
-            }
-        
-        # 获取 NUMA 内存访问统计
-        numastat_cmd = [numastat_bin, '-p', pid]
-        numastat_result = subprocess.run(numastat_cmd, capture_output=True, text=True, check=True)
-        
-        msg = f"成功获取容器 {container_id} 的 NUMA 内存访问统计（本地）" if is_zh else f"Successfully retrieved NUMA stats for container {container_id} (local)"
+        init_pid = inspect_result.stdout.strip()
+
+        if not init_pid.isdigit():
+            msg = f"无法获取容器 {container_id} 的 PID: {init_pid}" if is_zh \
+                else f"Failed to get PID for container {container_id}: {init_pid}"
+            return {"status": "error", "message": msg, "output": ""}
+
+        # 2. 查找该容器下 RSS 最大的子进程（排除 PID 1）
+        # ps: pid,ppid,rss,comm
+        ps_cmd = [
+            "ps", "-e", "-o", "pid=,ppid=,rss=,comm="
+        ]
+        ps_result = subprocess.run(ps_cmd, capture_output=True, text=True, check=True)
+
+        candidates = []
+        for line in ps_result.stdout.splitlines():
+            pid, ppid, rss, comm = line.split(maxsplit=3)
+            if ppid == init_pid and pid != init_pid:
+                candidates.append((int(rss), pid, comm))
+
+        if not candidates:
+            msg = f"容器 {container_id} 中未找到可监控的业务进程" if is_zh \
+                else f"No workload process found in container {container_id}"
+            return {"status": "error", "message": msg, "output": ""}
+
+        # 3. 选择 RSS 最大的进程
+        candidates.sort(reverse=True)
+        rss_kb, target_pid, target_comm = candidates[0]
+
+        # 4. 执行 numastat
+        numastat_cmd = [numastat_bin, "-p", target_pid]
+        numastat_result = subprocess.run(
+            numastat_cmd, capture_output=True, text=True, check=True
+        )
+
+        msg = (
+            f"成功获取容器 {container_id} 的 NUMA 内存访问统计（进程 {target_comm}, PID {target_pid}）"
+            if is_zh
+            else f"Successfully retrieved NUMA stats for container {container_id} "
+                 f"(process {target_comm}, PID {target_pid})"
+        )
+
         return {
-            'status': 'success',
-            'message': msg,
-            'output': numastat_result.stdout
+            "status": "success",
+            "message": msg,
+            "output": numastat_result.stdout,
         }
+
     except subprocess.CalledProcessError as e:
         msg = f"命令执行失败: {e.stderr}" if is_zh else f"Command failed: {e.stderr}"
         raise RuntimeError(msg) from e
