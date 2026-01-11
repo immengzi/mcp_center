@@ -1,17 +1,19 @@
 # Copyright (c) Huawei Technologies Co., Ltd. 2023-2025. All rights reserved.
-from config.public.base_config_loader import BaseConfig
 import os
-from pydantic import BaseModel, Field
+
 import toml
+from pydantic import BaseModel, Field
+
+from config.public.base_config_loader import BaseConfig
 
 
 class NumaDiagnoseConfigModel(BaseModel):
-    """顶层配置模型"""
-    port: int = Field(default=12100, description="MCP服务端口")
+    """NumaDiagnose 配置模型"""
+    port: int = Field(default=12209, description="MCP服务端口")
 
 
 class NumaDiagnoseConfig(BaseConfig):
-    """顶层配置文件读取和使用Class"""
+    """NumaDiagnose 配置文件读取和使用 Class"""
 
     def __init__(self) -> None:
         """读取配置文件"""
@@ -23,4 +25,10 @@ class NumaDiagnoseConfig(BaseConfig):
         config_file = os.getenv("CONFIG")
         if config_file is None:
             config_file = os.path.join("config", "private", "numa_diagnose", "config.toml")
-        self._config.private_config = NumaDiagnoseConfigModel.model_validate(toml.load(config_file))
+        
+        if os.path.exists(config_file) and os.path.getsize(config_file) > 0:
+            config_data = toml.load(config_file)
+        else:
+            config_data = {}
+        
+        self._config.private_config = NumaDiagnoseConfigModel.model_validate(config_data)
