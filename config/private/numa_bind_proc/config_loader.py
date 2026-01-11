@@ -1,16 +1,19 @@
-from config.public.base_config_loader import BaseConfig
+# Copyright (c) Huawei Technologies Co., Ltd. 2023-2025. All rights reserved.
 import os
-from pydantic import BaseModel, Field
+
 import toml
+from pydantic import BaseModel, Field
+
+from config.public.base_config_loader import BaseConfig
 
 
 class NumaBindProcConfigModel(BaseModel):
-    """顶层配置模型"""
-    port: int = Field(default=12100, description="MCP服务端口")
+    """NumaBindProc 配置模型"""
+    port: int = Field(default=12204, description="MCP服务端口")
 
 
 class NumaBindProcConfig(BaseConfig):
-    """顶层配置文件读取和使用Class"""
+    """NumaBindProc 配置文件读取和使用 Class"""
 
     def __init__(self) -> None:
         """读取配置文件"""
@@ -22,4 +25,10 @@ class NumaBindProcConfig(BaseConfig):
         config_file = os.getenv("CONFIG")
         if config_file is None:
             config_file = os.path.join("config", "private", "numa_bind_proc", "config.toml")
-        self._config.private_config = NumaBindProcConfigModel.model_validate(toml.load(config_file))
+        
+        if os.path.exists(config_file) and os.path.getsize(config_file) > 0:
+            config_data = toml.load(config_file)
+        else:
+            config_data = {}
+        
+        self._config.private_config = NumaBindProcConfigModel.model_validate(config_data)
